@@ -11,7 +11,7 @@
 // Import required Firebase modules
 import { initializeApp } from "firebase/app";
 // Additional Firebase services can be imported here as needed
-// import { getAuth } from "firebase/auth";
+import { getAuth } from "firebase/auth";
 // import { getFirestore } from "firebase/firestore";
 // import { getStorage } from "firebase/storage";
 
@@ -41,4 +41,4 @@ const app = initializeApp(firebaseConfig);
 // export const db = getFirestore(app);
 // export const storage = getStorage(app);
 
-export default app; 
+export const auth = getAuth(app);
