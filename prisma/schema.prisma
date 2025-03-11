@@ -6,6 +6,8 @@
 
 generator client {
   provider = "prisma-client-js"
+  previewFeatures = ["referentialIntegrity"]
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
 }
 
 // MySQL bağlantı konfigürasyonu

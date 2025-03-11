@@ -1,0 +1,10 @@
+{
+  "buildCommand": "npm run build",
+  "outputDirectory": ".next",
+  "installCommand": "npm install --legacy-peer-deps",
+  "framework": "nextjs",
+  "regions": ["iad1"],
+  "env": {
+    "VERCEL_BUILD_COMMAND": "prisma generate && next build"
+  }
+} 
