@@ -8,19 +8,17 @@
 
 import { PrismaClient } from '@prisma/client';
 
-// PrismaClient için global namespace bildirimi
-declare global {
-  var prisma: PrismaClient | undefined;
-}
+// PrismaClient örneği
+const globalForPrisma = global as unknown as { prisma: PrismaClient | undefined };
 
 // Prisma Client örneği
 // Development modunda hot-reloading sırasında birden fazla bağlantı açılmasını önlemek için
 // global değişkeni kullanarak tek bir örnek oluşturulur
-export const prisma = global.prisma || new PrismaClient();
+export const prisma = globalForPrisma.prisma ?? new PrismaClient();
 
 // Development modunda global değişkene atama
 if (process.env.NODE_ENV !== 'production') {
-  global.prisma = prisma;
+  globalForPrisma.prisma = prisma;
 }
 
 export default prisma; 

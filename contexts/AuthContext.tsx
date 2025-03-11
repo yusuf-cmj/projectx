@@ -8,16 +8,18 @@
 "use client";
 
 import { createContext, useContext, ReactNode } from "react";
+import type { Session } from "next-auth";
 import { 
   SessionProvider,
   useSession, 
   signIn as nextAuthSignIn, 
-  signOut as nextAuthSignOut,
-  SessionContextValue
+  signOut as nextAuthSignOut
 } from "next-auth/react";
 
 // Auth Context'in türü
-interface AuthContextType extends SessionContextValue {
+interface AuthContextType {
+  status: "loading" | "authenticated" | "unauthenticated";
+  data: Session | null;
   signIn: (email: string, password: string) => Promise<boolean>;
   signUp: (name: string, email: string, password: string) => Promise<boolean>;
   signOut: () => Promise<void>;
@@ -28,7 +30,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // Provider component
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const session = useSession();
+  const { data, status } = useSession();
 
   /**
    * Kullanıcı girişi fonksiyonu
@@ -92,7 +94,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   return (
     <AuthContext.Provider
       value={{
-        ...session,
+        data,
+        status,
         signIn,
         signUp,
         signOut,

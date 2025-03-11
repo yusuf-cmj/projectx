@@ -52,7 +52,8 @@ export function LoginForm({
       } else {
         setError("Failed to login. Please check your credentials.")
       }
-    } catch (error) {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (_) {
       setError("Failed to login. Please check your credentials.")
     } finally {
       setLoading(false)

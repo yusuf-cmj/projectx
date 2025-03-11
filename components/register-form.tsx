@@ -58,7 +58,7 @@ export function RegisterForm({
       } else {
         setError("Failed to create account. Email may already be in use.")
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Registration error:", error)
       setError("Failed to create account")
     } finally {

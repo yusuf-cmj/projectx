@@ -8,15 +8,11 @@
 import { NextAuthOptions } from "next-auth";
 import NextAuth from "next-auth/next";
 import CredentialsProvider from "next-auth/providers/credentials";
-import { PrismaAdapter } from "@auth/prisma-adapter";
 import { compare } from "bcrypt";
 import prisma from "@/lib/prisma";
 
 // NextAuth.js yapılandırma seçenekleri
-export const authOptions: NextAuthOptions = {
-  // Prisma adaptörü - veritabanı ile entegrasyon sağlar
-  adapter: PrismaAdapter(prisma),
-  
+const authOptions: NextAuthOptions = {
   // Kimlik doğrulama sağlayıcıları
   providers: [
     // Email/şifre kimlik doğrulama sağlayıcısı
@@ -121,4 +117,5 @@ export const authOptions: NextAuthOptions = {
 
 // NextAuth handler'ını export et
 const handler = NextAuth(authOptions);
+
 export { handler as GET, handler as POST }; 
