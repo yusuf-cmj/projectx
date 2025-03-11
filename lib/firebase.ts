@@ -1,4 +1,4 @@
-/**
+/*  *
  * Firebase Configuration Module
  * 
  * This module initializes the Firebase application with configuration from environment variables.

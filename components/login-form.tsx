@@ -16,6 +16,12 @@ import { useAuth } from "@/contexts/AuthContext"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 
+/**
+ * Giriş Formu Bileşeni
+ * 
+ * Kullanıcıların email ve şifreleriyle kimlik doğrulaması yapmalarını sağlar.
+ * NextAuth.js entegrasyonu ile MySQL'de kimlik doğrulama yapar.
+ */
 export function LoginForm({
   className,
   ...props
@@ -24,32 +30,30 @@ export function LoginForm({
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
-  const { login, loginWithGoogle } = useAuth()
+  const { signIn } = useAuth()
   const router = useRouter()
 
+  /**
+   * Form gönderildiğinde çalışan işleyici
+   * Kullanıcının kimlik bilgilerini doğrular ve giriş yapar
+   */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
     try {
       setError("")
       setLoading(true)
-      await login(email, password)
-      router.push("/dashboard")
+      
+      // NextAuth.js ile giriş
+      const success = await signIn(email, password)
+      
+      if (success) {
+        router.push("/dashboard")
+      } else {
+        setError("Failed to login. Please check your credentials.")
+      }
     } catch (error) {
       setError("Failed to login. Please check your credentials.")
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleGoogleLogin = async () => {
-    try {
-      setError("")
-      setLoading(true)
-      await loginWithGoogle()
-      router.push("/dashboard")
-    } catch (error) {
-      setError("Failed to login with Google.")
     } finally {
       setLoading(false)
     }
@@ -110,15 +114,6 @@ export function LoginForm({
                   disabled={loading}
                 >
                   {loading ? "Logging in..." : "Login"}
-                </Button>
-                <Button 
-                  type="button"
-                  variant="outline" 
-                  className="w-full"
-                  onClick={handleGoogleLogin}
-                  disabled={loading}
-                >
-                  Login with Google
                 </Button>
               </div>
             </div>

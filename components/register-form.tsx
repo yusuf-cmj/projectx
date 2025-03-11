@@ -16,18 +16,29 @@ import { useAuth } from "@/contexts/AuthContext"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 
+/**
+ * Kayıt Formu Bileşeni
+ * 
+ * Yeni kullanıcıların sisteme kaydolmasını sağlar.
+ * NextAuth.js ve MySQL veritabanı entegrasyonu ile çalışır.
+ */
 export function RegisterForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
+  const [name, setName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
-  const { signup, loginWithGoogle } = useAuth()
+  const { signUp } = useAuth()
   const router = useRouter()
 
+  /**
+   * Form gönderildiğinde çalışan işleyici
+   * Kullanıcı bilgilerini doğrular ve kayıt işlemini gerçekleştirir
+   */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -38,25 +49,18 @@ export function RegisterForm({
     try {
       setError("")
       setLoading(true)
-      console.log("Attempting signup with:", { email, password }); // Debug için
-      await signup(email, password)
-      router.push('/dashboard')
+      
+      // NextAuth.js ile kayıt ve otomatik giriş
+      const success = await signUp(name, email, password)
+      
+      if (success) {
+        router.push('/dashboard')
+      } else {
+        setError("Failed to create account. Email may already be in use.")
+      }
     } catch (error: any) {
-      console.error("Detailed error:", error); // Detaylı hata için
-      setError(error.code ? `Error: ${error.code}` : "Failed to create account")
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleGoogleSignup = async () => {
-    try {
-      setError("")
-      setLoading(true)
-      await loginWithGoogle()
-      router.push("/dashboard")
-    } catch (error) {
-      setError("Failed to sign up with Google")
+      console.error("Registration error:", error)
+      setError("Failed to create account")
     } finally {
       setLoading(false)
     }
@@ -79,6 +83,18 @@ export function RegisterForm({
           )}
           <form onSubmit={handleSubmit}>
             <div className="flex flex-col gap-6">
+              <div className="grid gap-3">
+                <Label htmlFor="name">Full Name</Label>
+                <Input
+                  id="name"
+                  type="text"
+                  placeholder="John Doe"
+                  required
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  disabled={loading}
+                />
+              </div>
               <div className="grid gap-3">
                 <Label htmlFor="email">Email</Label>
                 <Input
@@ -120,15 +136,6 @@ export function RegisterForm({
                   disabled={loading}
                 >
                   {loading ? "Creating Account..." : "Create Account"}
-                </Button>
-                <Button 
-                  type="button"
-                  variant="outline" 
-                  className="w-full"
-                  onClick={handleGoogleSignup}
-                  disabled={loading}
-                >
-                  Sign up with Google
                 </Button>
               </div>
             </div>
