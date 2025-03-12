@@ -1,3 +1,5 @@
+"use client"
+
 import { AppSidebar } from "@/components/app-sidebar"
 import {
   Breadcrumb,
@@ -12,8 +14,18 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar"
+import { useSession } from "next-auth/react"
 
 export default function Page() {
+  const { data: session , status } = useSession(); 
+
+  if(status === "loading"){
+    return <p>Loading...</p>
+  }
+  if(!session) {
+    return <p>Access Denied</p>
+  }
+
   return (
     <SidebarProvider>
       <SidebarInset>
