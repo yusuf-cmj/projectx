@@ -6,7 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import prisma from "@/lib/prisma";
+import prisma from "../../../lib/prisma";
 import { hash } from "bcrypt";
 import { z } from "zod";
 
@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
   try {
     // İstek verilerini al
     const body = await request.json();
-    
+
     // Veri doğrulama
     const result = registerSchema.safeParse(body);
     if (!result.success) {
@@ -31,26 +31,26 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-    
+
     const { name, email, password } = result.data;
-    
+
     // Email adresi zaten kullanılıyor mu kontrol et
     const existingUser = await prisma.user.findUnique({
       where: {
         email
       }
     });
-    
+
     if (existingUser) {
       return NextResponse.json(
         { error: "Bu email adresi zaten kullanılıyor" },
         { status: 409 }
       );
     }
-    
+
     // Şifreyi hashle
     const hashedPassword = await hash(password, 12);
-    
+
     // Kullanıcıyı veritabanına kaydet
     const newUser = await prisma.user.create({
       data: {
@@ -59,16 +59,16 @@ export async function POST(request: NextRequest) {
         password: hashedPassword
       }
     });
-    
+
     // Şifreyi gizleyerek yanıt dön
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password: _password, ...userWithoutPassword } = newUser;
-    
+
     return NextResponse.json(
       { message: "Kullanıcı başarıyla oluşturuldu", user: userWithoutPassword },
       { status: 201 }
     );
-    
+
   } catch (error) {
     console.error("Kayıt hatası:", error);
     return NextResponse.json(

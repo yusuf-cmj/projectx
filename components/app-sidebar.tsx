@@ -31,16 +31,10 @@ import {
   SidebarHeader,
   SidebarRail,
 } from "@/components/ui/sidebar"
-import { url } from "inspector"
+import { useSession } from "next-auth/react"
 
 // This is sample data.
 const data = {
-  user: {
-    name: "shadcn",
-    email: "m@example.com",
-    avatar: "/avatars/shadcn.jpg",
-  },
-  
   navMain: [
     {
       title: "Singleplayer",
@@ -71,7 +65,7 @@ const data = {
       ],
     },
     {
-      title: "Multiplayer", 
+      title: "Multiplayer",
       url: "#",
       icon: Users,
       items: [
@@ -98,21 +92,26 @@ const data = {
       ],
     },
   ],
-  
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const { data: session } = useSession();
+
+  const userData = {
+    name: session?.user?.name || "Guest",
+    email: session?.user?.email || "",
+    avatar: session?.user?.image || ""
+  };
+
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
-        <NavUser user={data.user} />
+        <NavUser user={userData} />
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={data.navMain} />
-        
       </SidebarContent>
       <SidebarFooter>
-        
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>
