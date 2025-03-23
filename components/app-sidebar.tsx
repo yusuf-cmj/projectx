@@ -94,14 +94,24 @@ const data = {
   ],
 }
 
-export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const { data: session } = useSession();
+interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
+  onModeSelect?: (mode: string, category: string) => void
+}
+
+export function AppSidebar({ onModeSelect, ...props }: AppSidebarProps) {
+  const { data: session } = useSession()
 
   const userData = {
     name: session?.user?.name || "Guest",
     email: session?.user?.email || "",
     avatar: session?.user?.image || ""
-  };
+  }
+
+  const handleModeSelect = (mode: string, category: string) => {
+    if (onModeSelect) {
+      onModeSelect(mode, category)
+    }
+  }
 
   return (
     <Sidebar collapsible="icon" {...props}>
@@ -109,7 +119,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <NavUser user={userData} />
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={data.navMain} />
+        <NavMain items={data.navMain} onModeSelect={handleModeSelect} />
       </SidebarContent>
       <SidebarFooter>
       </SidebarFooter>
