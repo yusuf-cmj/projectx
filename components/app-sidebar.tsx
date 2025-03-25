@@ -17,6 +17,7 @@ import {
   Edit,
   Image,
   User,
+  Users,
 } from "lucide-react"
 
 import { NavMain } from "@/components/nav-main"
@@ -30,32 +31,10 @@ import {
   SidebarHeader,
   SidebarRail,
 } from "@/components/ui/sidebar"
-import { url } from "inspector"
+import { useSession } from "next-auth/react"
 
 // This is sample data.
 const data = {
-  user: {
-    name: "shadcn",
-    email: "m@example.com",
-    avatar: "/avatars/shadcn.jpg",
-  },
-  teams: [
-    {
-      name: "Acme Inc",
-      logo: GalleryVerticalEnd,
-      plan: "Enterprise",
-    },
-    {
-      name: "Acme Corp.",
-      logo: AudioWaveform,
-      plan: "Startup",
-    },
-    {
-      name: "Evil Corp.",
-      logo: Command,
-      plan: "Free",
-    },
-  ],
   navMain: [
     {
       title: "Singleplayer",
@@ -86,102 +65,63 @@ const data = {
       ],
     },
     {
-      title: "Models",
+      title: "Multiplayer",
       url: "#",
-      icon: Bot,
+      icon: Users,
       items: [
         {
-          title: "Genesis",
+          title: "PickAQuote",
           url: "#",
+          icon: Quote,
         },
         {
-          title: "Explorer",
+          title: "CompletionQuote",
           url: "#",
+          icon: Edit,
         },
         {
-          title: "Quantum",
+          title: "SceneQuote",
           url: "#",
+          icon: Image,
+        },
+        {
+          title: "WhoseQuote",
+          url: "#",
+          icon: User,
         },
       ],
-    },
-    {
-      title: "Documentation",
-      url: "#",
-      icon: BookOpen,
-      items: [
-        {
-          title: "Introduction",
-          url: "#",
-        },
-        {
-          title: "Get Started",
-          url: "#",
-        },
-        {
-          title: "Tutorials",
-          url: "#",
-        },
-        {
-          title: "Changelog",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Settings",
-      url: "#",
-      icon: Settings2,
-      items: [
-        {
-          title: "General",
-          url: "#",
-        },
-        {
-          title: "Team",
-          url: "#",
-        },
-        {
-          title: "Billing",
-          url: "#",
-        },
-        {
-          title: "Limits",
-          url: "#",
-        },
-      ],
-    },
-  ],
-  projects: [
-    {
-      name: "Design Engineering",
-      url: "#",
-      icon: Frame,
-    },
-    {
-      name: "Sales & Marketing",
-      url: "#",
-      icon: PieChart,
-    },
-    {
-      name: "Travel",
-      url: "#",
-      icon: Map,
     },
   ],
 }
 
-export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
+  onModeSelect?: (mode: string, category: string) => void
+}
+
+export function AppSidebar({ onModeSelect, ...props }: AppSidebarProps) {
+  const { data: session } = useSession()
+
+  const userData = {
+    name: session?.user?.name || "Guest",
+    email: session?.user?.email || "",
+    avatar: session?.user?.image || ""
+  }
+
+  const handleModeSelect = (mode: string, category: string) => {
+    if (onModeSelect) {
+      onModeSelect(mode, category)
+    }
+  }
+
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
-        <NavUser user={data.user} />
+        <NavUser user={userData} />
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={data.navMain} />
-        <NavProjects projects={data.projects} />
+        <NavMain items={data.navMain} onModeSelect={handleModeSelect} />
       </SidebarContent>
       <SidebarFooter>
-        
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>

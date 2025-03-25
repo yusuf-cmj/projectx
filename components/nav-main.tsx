@@ -18,9 +18,7 @@ import {
   SidebarMenuSubItem,
 } from "@/components/ui/sidebar"
 
-export function NavMain({
-  items,
-}: {
+interface NavMainProps {
   items: {
     title: string
     url: string
@@ -32,7 +30,16 @@ export function NavMain({
       icon?: LucideIcon
     }[]
   }[]
-}) {
+  onModeSelect?: (mode: string, category: string) => void
+}
+
+export function NavMain({ items, onModeSelect }: NavMainProps) {
+  const handleModeClick = (mode: string, category: string) => {
+    if (onModeSelect) {
+      onModeSelect(mode, category)
+    }
+  }
+
   return (
     <SidebarGroup>
       <SidebarGroupLabel>Platform</SidebarGroupLabel>
@@ -56,7 +63,10 @@ export function NavMain({
                 <SidebarMenuSub>
                   {item.items?.map((subItem) => (
                     <SidebarMenuSubItem key={subItem.title}>
-                      <SidebarMenuSubButton asChild>
+                      <SidebarMenuSubButton 
+                        asChild
+                        onClick={() => handleModeClick(subItem.title, item.title)}
+                      >
                         <a href={subItem.url}>
                           {subItem.icon && <subItem.icon />}
                           <span>{subItem.title}</span>

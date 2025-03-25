@@ -1,6 +1,8 @@
 "use client"
 
 import { AppSidebar } from "@/components/app-sidebar"
+import { SingleplayerContent } from "@/components/game-modes/singleplayer-content"
+import { MultiplayerContent } from "@/components/game-modes/multiplayer-content"
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -15,9 +17,17 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar"
 import { useSession } from "next-auth/react"
+import { useState } from "react"
 
 export default function Page() {
-  const { data: session , status } = useSession(); 
+  const { data: session, status } = useSession()
+  const [activeMode, setActiveMode] = useState<string>("")
+  const [activeCategory, setActiveCategory] = useState<string>("")
+
+  const handleModeSelect = (mode: string, category: string) => {
+    setActiveMode(mode)
+    setActiveCategory(category)
+  }
 
   if(status === "loading"){
     return <p>Loading...</p>
@@ -34,27 +44,35 @@ export default function Page() {
             <BreadcrumbList>
               <BreadcrumbItem className="hidden md:block">
                 <BreadcrumbLink href="#">
-                  Building Your Application
+                  Quote Game
                 </BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator className="hidden md:block" />
               <BreadcrumbItem>
-                <BreadcrumbPage>Data Fetching</BreadcrumbPage>
+                <BreadcrumbPage>{activeCategory || "Select Category"}</BreadcrumbPage>
               </BreadcrumbItem>
+              {activeMode && (
+                <>
+                  <BreadcrumbSeparator className="hidden md:block" />
+                  <BreadcrumbItem>
+                    <BreadcrumbPage>{activeMode}</BreadcrumbPage>
+                  </BreadcrumbItem>
+                </>
+              )}
             </BreadcrumbList>
           </Breadcrumb>
           <SidebarTrigger className="-mr-1 ml-auto rotate-180" />
         </header>
-        <div className="flex flex-1 flex-col gap-4 p-4">
-          <div className="grid auto-rows-min gap-4 md:grid-cols-3">
-            <div className="aspect-video rounded-xl bg-muted/50" />
-            <div className="aspect-video rounded-xl bg-muted/50" />
-            <div className="aspect-video rounded-xl bg-muted/50" />
-          </div>
-          <div className="min-h-[100vh] flex-1 rounded-xl bg-muted/50 md:min-h-min" />
+        <div className="flex-1">
+          {activeCategory === "Singleplayer" && (
+            <SingleplayerContent activeMode={activeMode} />
+          )}
+          {activeCategory === "Multiplayer" && (
+            <MultiplayerContent activeMode={activeMode} />
+          )}
         </div>
       </SidebarInset>
-      <AppSidebar side="right" />
+      <AppSidebar side="right" className="right" onModeSelect={handleModeSelect} />
     </SidebarProvider>
   )
 }
