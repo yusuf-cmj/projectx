@@ -104,3 +104,9 @@ model GameQuote {
   @@index([character])
   @@index([title])
 }
+model GameHistory {
+  id        Int      @id @default(autoincrement())
+  userId    String
+  score     Int
+  playedAt  DateTime @default(now())
+}

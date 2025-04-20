@@ -15,9 +15,12 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs"
 import { Gamepad, Users } from "lucide-react"
+import { useState } from "react"
+import SingleplayerHistory from "@/components/SingleplayerHistory" // ✅ import et
 
 export default function HomeTabs() {
   const router = useRouter() // ✅ EKLENDİ: Yönlendirme için
+  const [showHistory, setShowHistory] = useState(false)
 
   return (
     <Tabs defaultValue="singleplayer" className="w-full max-w-md">
@@ -32,38 +35,55 @@ export default function HomeTabs() {
 
       {/* SINGLEPLAYER TAB */}
       <TabsContent value="singleplayer">
-        <Card className="hover:shadow-xl transition duration-300">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Gamepad className="h-5 w-5" />
-              Singleplayer Mode
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-4">
-            <div>
-              <p className="text-sm text-muted-foreground mb-1">
-                Play a solo quiz with random quotes from movies and games.
-              </p>
-              <Button
-                variant="default"
-                size="lg"
-                className="w-full"
-                onClick={() => router.push("/singleplayer/play")}
-              >
-                Play
-              </Button>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground mb-1">
-                Check your game history and scores.
-              </p>
-              <Button variant="outline" size="lg" className="w-full">
-                History
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </TabsContent>
+  {showHistory ? (
+    <>
+      <SingleplayerHistory />
+      <div className="text-center mt-4">
+        <Button variant="secondary" onClick={() => setShowHistory(false)}>
+          ⬅ Back
+        </Button>
+      </div>
+    </>
+  ) : (
+    <Card className="hover:shadow-xl transition duration-300">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Gamepad className="h-5 w-5" />
+          Singleplayer Mode
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-4">
+        <div>
+          <p className="text-sm text-muted-foreground mb-1">
+            Play a solo quiz with random quotes from movies and games.
+          </p>
+          <Button
+            variant="default"
+            size="lg"
+            className="w-full"
+            onClick={() => router.push("/singleplayer/play")}
+          >
+            Play
+          </Button>
+        </div>
+        <div>
+          <p className="text-sm text-muted-foreground mb-1">
+            Check your game history and scores.
+          </p>
+          <Button
+            variant="outline"
+            size="lg"
+            className="w-full"
+            onClick={() => setShowHistory(true)} // ✅ TIKLAMA AKTİF
+          >
+            History
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  )}
+</TabsContent>
+
 
       {/* MULTIPLAYER TAB */}
       <TabsContent value="multiplayer">
