@@ -17,10 +17,130 @@ import {
 import { Gamepad, Users } from "lucide-react"
 import { useState } from "react"
 import SingleplayerHistory from "@/components/SingleplayerHistory" // ✅ import et
+// Add Firebase imports
+import { db } from '@/lib/firebase'; // Adjust path if needed
+import { ref, set, serverTimestamp, get, update } from 'firebase/database';
+import { useSession } from 'next-auth/react'; // Import useSession
+// import { useAuth } from '@/context/AuthContext'; // Assuming you have an AuthContext
+
+// Function to generate a simple random room code
+function generateRoomCode(length: number = 6): string {
+  const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let result = '';
+  for (let i = 0; i < length; i++) {
+    result += characters.charAt(Math.floor(Math.random() * characters.length));
+  }
+  return result;
+}
 
 export default function HomeTabs() {
   const router = useRouter() // ✅ EKLENDİ: Yönlendirme için
   const [showHistory, setShowHistory] = useState(false)
+  const { data: session, status } = useSession(); // Get session status
+  // const { user } = useAuth(); // Get current user if available
+
+  // Define the function to handle room creation
+  const handleCreateRoom = async () => {
+    if (status === 'loading') return; // Don't do anything if session is loading
+    if (!session || !session.user) { // Check if user is logged in
+      console.error("User not logged in");
+      alert("You must be logged in to create a room.");
+      // Optionally redirect to login page: router.push('/login');
+      return;
+    }
+
+    // Use optional chaining for user properties
+    const userId = session.user.id; // Adjust if your session user id is different
+    const userName = session.user.name ?? session.user.email ?? 'Anonymous'; // Use name, fallback to email, then Anonymous
+
+    if (!userId) {
+      console.error("User ID is missing from session");
+      alert("An error occurred retrieving your user ID. Please try again.");
+      return;
+    }
+
+    const roomCode = generateRoomCode();
+    const roomRef = ref(db, `rooms/${roomCode}`);
+
+    try {
+      // Room limit check (optional)
+      // ...
+
+      await set(roomRef, {
+        creatorId: userId, // Store the creator's ID
+        createdAt: serverTimestamp(),
+        status: 'waiting',
+        players: {
+          [userId]: { // Add creator as the first player using their ID as key
+            name: userName,
+            score: 0,
+            isReady: false, // Creator starts as not ready
+          }
+        },
+      });
+      console.log(`Room created with code: ${roomCode} by user ${userId}`);
+      alert(`Room created! Code: ${roomCode}. Share this code with others.`);
+      router.push(`/multiplayer/lobby/${roomCode}`);
+    } catch (error) {
+      console.error('Error creating room:', error);
+      alert('Failed to create room. Please try again.');
+    }
+  };
+
+  // Function to handle joining a room
+  const handleJoinRoom = async () => {
+    if (status === 'loading') return;
+    if (!session || !session.user) {
+      console.error("User not logged in");
+      alert("You must be logged in to join a room.");
+      return;
+    }
+
+    const userId = session.user.id;
+    const userName = session.user.name ?? session.user.email ?? 'Anonymous';
+
+    if (!userId) {
+      console.error("User ID is missing from session");
+      alert("An error occurred retrieving your user ID. Please try again.");
+      return;
+    }
+
+    const code = prompt("Enter the room code:")?.trim().toUpperCase(); // Get code, trim whitespace, make uppercase
+
+    if (!code) return; // User cancelled or entered empty code
+
+    const roomRef = ref(db, `rooms/${code}`);
+
+    try {
+      const snapshot = await get(roomRef);
+
+      if (snapshot.exists()) {
+        // Room exists, add the player
+        const roomData = snapshot.val();
+        if (roomData.players && roomData.players[userId]) {
+           alert("You are already in this room!"); // Optional: Check if already joined
+           router.push(`/multiplayer/lobby/${code}`);
+           return;
+        }
+        // Add or update player data
+        const playerRef = ref(db, `rooms/${code}/players/${userId}`);
+        await set(playerRef, { // Use set instead of update to ensure all fields are present
+          name: userName,
+          score: 0,
+          isReady: false,
+        });
+
+        console.log(`User ${userId} joined room ${code}`);
+        router.push(`/multiplayer/lobby/${code}`);
+      } else {
+        // Room does not exist
+        alert(`Room with code "${code}" not found.`);
+      }
+    } catch (error) {
+      console.error('Error joining room:', error);
+      alert('Failed to join room. Please check the code and try again.');
+    }
+  };
 
   return (
     <Tabs defaultValue="singleplayer" className="w-full max-w-md">
@@ -99,7 +219,12 @@ export default function HomeTabs() {
               <p className="text-sm text-muted-foreground mb-1">
                 Join a room and compete with others.
               </p>
-              <Button variant="default" size="lg" className="w-full">
+              <Button
+                variant="default"
+                size="lg"
+                className="w-full"
+                onClick={handleJoinRoom} // Add onClick for Join
+              >
                 Join
               </Button>
             </div>
@@ -107,7 +232,12 @@ export default function HomeTabs() {
               <p className="text-sm text-muted-foreground mb-1">
                 Create a custom room to play with friends.
               </p>
-              <Button variant="outline" size="lg" className="w-full">
+              <Button
+                variant="outline"
+                size="lg"
+                className="w-full"
+                onClick={handleCreateRoom} // Add onClick for Create
+               >
                 Create
               </Button>
             </div>
