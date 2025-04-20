@@ -42,7 +42,7 @@ export default function HomeTabs() {
           <CardContent className="flex flex-col gap-4">
             <div>
               <p className="text-sm text-muted-foreground mb-1">
-                Play a solo quiz with random quotes.
+                Play a solo quiz with random quotes from movies and games.
               </p>
               <Button
                 variant="default"

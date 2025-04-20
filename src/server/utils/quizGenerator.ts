@@ -1,4 +1,4 @@
-import { PrismaClient, FilmQuote } from '@prisma/client';
+import { PrismaClient, FilmQuote, GameQuote } from '@prisma/client';
 import _ from 'lodash'; // Using lodash for shuffling
 
 const prisma = new PrismaClient();
@@ -13,11 +13,12 @@ interface QuestionFormat {
     quote?: string | null; // Include quote text when media is voice
   };
   type: number;
+  source: 'film' | 'game';
 }
 
 // Helper function to get N distinct random items
 async function getRandomDistinct<T extends { id: string }, K extends keyof T>(
-  model: 'filmQuote', // Extend later for 'gameQuote'
+  model: 'filmQuote' | 'gameQuote',
   field: K,
   count: number,
   excludeId?: string,
@@ -73,14 +74,14 @@ async function getRandomDistinct<T extends { id: string }, K extends keyof T>(
 
 export async function createQuestion(type: 1 | 2 | 3 | 4): Promise<QuestionFormat | null> {
   try {
-    // For now, focusing on FilmQuote as requested
-    const modelName = 'filmQuote';
+    // Randomly choose between film and game quotes
+    const modelName = Math.random() < 0.5 ? 'filmQuote' : 'gameQuote';
     const totalQuotes = await prisma[modelName].count();
 
     if (totalQuotes < 4 && (type === 1 || type === 2)) {
-       console.warn("Need at least 4 quotes with distinct values for the chosen field to reliably generate type 1 or 2 questions.");
-       // Decide if you want to return null or try anyway
-       // return null;
+      console.warn("Need at least 4 quotes with distinct values for the chosen field to reliably generate type 1 or 2 questions.");
+      // Decide if you want to return null or try anyway
+      // return null;
     }
     if (totalQuotes === 0) {
       console.error("No quotes found in the database.");
@@ -92,7 +93,7 @@ export async function createQuestion(type: 1 | 2 | 3 | 4): Promise<QuestionForma
     const [correctQuoteData] = await prisma[modelName].findMany({
       take: 1,
       skip: skip,
-    }) as FilmQuote[]; // Type assertion for clarity
+    }) as (FilmQuote | GameQuote)[]; // Type assertion for clarity
 
     // --- DEBUG LOGGING --- >
     console.log("\n--- Fetched Correct Quote Data ---");
@@ -101,8 +102,8 @@ export async function createQuestion(type: 1 | 2 | 3 | 4): Promise<QuestionForma
     // <--- DEBUG LOGGING ---
 
     if (!correctQuoteData) {
-        console.error("Could not fetch a random quote.");
-        return null;
+      console.error("Could not fetch a random quote.");
+      return null;
     }
 
     let questionText = '';
@@ -114,60 +115,59 @@ export async function createQuestion(type: 1 | 2 | 3 | 4): Promise<QuestionForma
     switch (type) {
       // 1: Guess Quote from Image
       case 1: {
-        if (!correctQuoteData.image) return null; // Need image for this type
+        if (!correctQuoteData.image) return null;
         correctAnswer = correctQuoteData.quote;
         const incorrectOptions = await getRandomDistinct(modelName, 'quote', neededIncorrectOptions, correctQuoteData.id, correctAnswer);
         if (incorrectOptions.length < neededIncorrectOptions) {
-            console.warn(`Warning: Could only find ${incorrectOptions.length} distinct incorrect quotes for type 1.`);
-            // Handle this case - maybe fetch more, or allow fewer options? For now, proceed.
+          console.warn(`Warning: Could only find ${incorrectOptions.length} distinct incorrect quotes for type 1.`);
         }
         options = _.shuffle([correctAnswer, ...incorrectOptions]);
-        questionText = `Bu sahnede ${correctQuoteData.character || 'karakter'} ${correctQuoteData.to ? `'${correctQuoteData.to}'` : ''} ${correctQuoteData.to ? ' kişisine' : ''} hangi repliği söylemiştir?`;
+        questionText = `In this scene, what does ${correctQuoteData.character || 'the character'} say to ${correctQuoteData.to ? `'${correctQuoteData.to}'` : 'the other character'}?`;
         media.image = correctQuoteData.image;
         break;
       }
 
       // 2: Guess 'To' from Image/Quote
       case 2: {
-        if (!correctQuoteData.image || !correctQuoteData.to) return null; // Need image and 'to' field for this type
+        if (!correctQuoteData.image || !correctQuoteData.to) return null;
         correctAnswer = correctQuoteData.to;
         const incorrectOptions = await getRandomDistinct(modelName, 'to', neededIncorrectOptions, correctQuoteData.id, correctAnswer);
-         if (incorrectOptions.length < neededIncorrectOptions) {
-            console.warn(`Warning: Could only find ${incorrectOptions.length} distinct incorrect 'to' values for type 2.`);
-         }
+        if (incorrectOptions.length < neededIncorrectOptions) {
+          console.warn(`Warning: Could only find ${incorrectOptions.length} distinct incorrect 'to' values for type 2.`);
+        }
         options = _.shuffle([correctAnswer, ...incorrectOptions]);
-        questionText = `Bu sahnede ${correctQuoteData.character || 'karakter'} "${correctQuoteData.quote}" repliğini kime söylemiştir?`;
+        questionText = `In this scene, who does ${correctQuoteData.character || 'the character'} say "${correctQuoteData.quote}" to?`;
         media.image = correctQuoteData.image;
         break;
       }
 
       // 3: Guess Character from Quote/Voice
       case 3: {
-        if (!correctQuoteData.voice_record && !correctQuoteData.quote) return null; // Need voice or quote
+        if (!correctQuoteData.voice_record && !correctQuoteData.quote) return null;
         correctAnswer = correctQuoteData.character;
-         const incorrectOptions = await getRandomDistinct(modelName, 'character', neededIncorrectOptions, correctQuoteData.id, correctAnswer);
-          if (incorrectOptions.length < neededIncorrectOptions) {
-            console.warn(`Warning: Could only find ${incorrectOptions.length} distinct incorrect characters for type 3.`);
-          }
+        const incorrectOptions = await getRandomDistinct(modelName, 'character', neededIncorrectOptions, correctQuoteData.id, correctAnswer);
+        if (incorrectOptions.length < neededIncorrectOptions) {
+          console.warn(`Warning: Could only find ${incorrectOptions.length} distinct incorrect characters for type 3.`);
+        }
         options = _.shuffle([correctAnswer, ...incorrectOptions]);
-        questionText = `Bu ${correctQuoteData.voice_record ? 'ses kaydındaki' : ''} repliği kim söylemiştir?`;
+        questionText = `Who says ${correctQuoteData.voice_record ? 'this voice recording' : 'this quote'}?`;
         media.voice_record = correctQuoteData.voice_record;
-        media.quote = correctQuoteData.quote; // Always provide quote text for context
+        media.quote = correctQuoteData.quote;
         break;
       }
 
       // 4: Guess Title from Quote/Voice
       case 4: {
-        if (!correctQuoteData.voice_record && !correctQuoteData.quote) return null; // Need voice or quote
+        if (!correctQuoteData.voice_record && !correctQuoteData.quote) return null;
         correctAnswer = correctQuoteData.title;
         const incorrectOptions = await getRandomDistinct(modelName, 'title', neededIncorrectOptions, correctQuoteData.id, correctAnswer);
         if (incorrectOptions.length < neededIncorrectOptions) {
-            console.warn(`Warning: Could only find ${incorrectOptions.length} distinct incorrect titles for type 4.`);
+          console.warn(`Warning: Could only find ${incorrectOptions.length} distinct incorrect titles for type 4.`);
         }
         options = _.shuffle([correctAnswer, ...incorrectOptions]);
-        questionText = `Bu ${correctQuoteData.voice_record ? 'ses kaydındaki' : ''} replik hangi ${modelName === 'filmQuote' ? 'filme' : 'oyuna'} aittir?`;
+        questionText = `Which ${modelName === 'filmQuote' ? 'movie' : 'game'} is ${correctQuoteData.voice_record ? 'this voice recording' : 'this quote'} from?`;
         media.voice_record = correctQuoteData.voice_record;
-        media.quote = correctQuoteData.quote; // Always provide quote text for context
+        media.quote = correctQuoteData.quote;
         break;
       }
 
@@ -178,19 +178,18 @@ export async function createQuestion(type: 1 | 2 | 3 | 4): Promise<QuestionForma
 
     // Ensure we always return the minimum number of options, even if duplicates from less data
     while (options.length < neededIncorrectOptions + 1) {
-        console.warn(`Padding options for type ${type} due to lack of distinct data.`);
-        // In a real scenario, you might fetch more random items or use placeholders
-        options.push("Yetersiz Veri"); // Add placeholder if not enough distinct options found
+      console.warn(`Padding options for type ${type} due to lack of distinct data.`);
+      options.push("Insufficient Data");
     }
-    options = _.shuffle(options.slice(0, neededIncorrectOptions + 1)); // Ensure exactly 4 options
-
+    options = _.shuffle(options.slice(0, neededIncorrectOptions + 1));
 
     return {
       questionText,
       options,
       correctAnswer,
       media,
-      type
+      type,
+      source: modelName === 'filmQuote' ? 'film' : 'game'
     };
 
   } catch (error) {

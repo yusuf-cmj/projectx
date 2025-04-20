@@ -17,6 +17,7 @@ interface Question {
     quote?: string | null
   }
   type: number
+  source: 'film' | 'game'
 }
 
 export default function SingleplayerPlayPage() {
@@ -98,11 +99,11 @@ export default function SingleplayerPlayPage() {
     return (
       <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center px-4">
         <div className="bg-white p-8 rounded-xl shadow-xl text-center max-w-lg w-full mt-6">
-          <h2 className="text-2xl font-bold mb-4">Quiz Bitti 🎉</h2>
-          <p className="text-lg mb-2">Toplam Skorun:</p>
-          <p className="text-4xl font-bold text-green-600">{score} puan</p>
+          <h2 className="text-2xl font-bold mb-4">Quiz Complete 🎉</h2>
+          <p className="text-lg mb-2">Your Total Score:</p>
+          <p className="text-4xl font-bold text-green-600">{score} points</p>
           <div className="mt-6">
-            <Button onClick={() => router.push('/dashboard')}>Menüye Dön</Button>
+            <Button onClick={() => router.push('/dashboard')}>Back to Menu</Button>
           </div>
         </div>
       </div>
@@ -121,11 +122,11 @@ export default function SingleplayerPlayPage() {
               </Button>
             </DialogTrigger>
             <DialogContent className="text-center">
-              <DialogTitle>Oyundan Çık</DialogTitle>
-              <p className="text-sm text-muted-foreground mb-6">Çıkmak istediğinize emin misiniz? Oyun verileri kaybolacak.</p>
+              <DialogTitle>Exit Game</DialogTitle>
+              <p className="text-sm text-muted-foreground mb-6">Are you sure you want to exit? Your game progress will be lost.</p>
               <div className="flex justify-center gap-4">
-                <Button variant="secondary" onClick={() => setShowExitDialog(false)}>İptal</Button>
-                <Button variant="destructive" onClick={handleExitConfirm}>Menüye Dön</Button>
+                <Button variant="secondary" onClick={() => setShowExitDialog(false)}>Cancel</Button>
+                <Button variant="destructive" onClick={handleExitConfirm}>Back to Menu</Button>
               </div>
             </DialogContent>
           </Dialog>
@@ -139,14 +140,22 @@ export default function SingleplayerPlayPage() {
         </div>
 
         <h2 className="text-center text-xl font-bold mb-4">Question {questionIndex}/5</h2>
+        <p className="text-center text-sm text-muted-foreground mb-4">
+          {question.source === 'film' ? '🎬 Movie Question' : '🎮 Game Question'}
+        </p>
 
         {question.media?.image && (
           <img src={question.media.image} alt="scene" className="w-full h-64 object-contain rounded mb-4" />
         )}
         {question.media?.voice_record && (
-          <audio controls className="w-full mb-4">
+          <audio
+            key={question.media.voice_record}
+            controls
+            className="w-full mb-4"
+            autoPlay={false}
+          >
             <source src={question.media.voice_record} type="audio/mp3" />
-            Tarayıcınız bu ses öğesini desteklemiyor.
+            Your browser does not support the audio element.
           </audio>
         )}
 
@@ -161,7 +170,7 @@ export default function SingleplayerPlayPage() {
             if (selectedOption || timeLeft <= 0) {
               color = isCorrect ? "bg-green-500 text-white"
                 : isSelected ? "bg-red-500 text-white"
-                : "bg-gray-200 text-gray-500"
+                  : "bg-gray-200 text-gray-500"
             }
 
             return (
