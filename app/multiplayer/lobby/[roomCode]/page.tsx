@@ -192,21 +192,40 @@ export default function LobbyPage() {
   // --- End Start Game Logic ---
 
   if (sessionStatus === 'loading' || loading) {
-    return <div className="container mx-auto p-4 text-center">Loading lobby...</div>;
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-purple-900 to-indigo-900 flex items-center justify-center">
+        <div className="text-white text-xl animate-pulse">Loading lobby...</div>
+      </div>
+    );
   }
 
   // Check session after loading
   if (sessionStatus === 'unauthenticated') {
-     return <div className="container mx-auto p-4 text-center text-red-500">Please log in to view the lobby.</div>;
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-purple-900 to-indigo-900 flex items-center justify-center">
+        <div className="bg-purple-800/30 backdrop-blur-sm p-8 rounded-2xl border border-purple-400/20 shadow-lg shadow-purple-500/20 text-center">
+          <p className="text-red-400 text-xl">Please log in to view the lobby.</p>
+        </div>
+      </div>
+    );
   }
 
   if (error) {
-    return <div className="container mx-auto p-4 text-center text-red-500">{error}</div>;
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-purple-900 to-indigo-900 flex items-center justify-center">
+        <div className="bg-purple-800/30 backdrop-blur-sm p-8 rounded-2xl border border-purple-400/20 shadow-lg shadow-purple-500/20 text-center">
+          <p className="text-red-400 text-xl">{error}</p>
+        </div>
+      </div>
+    );
   }
 
   if (!roomData) {
-    // This case might be covered by the error state, but added for safety
-    return <div className="container mx-auto p-4 text-center">Loading room data...</div>;
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-purple-900 to-indigo-900 flex items-center justify-center">
+        <div className="text-white text-xl animate-pulse">Loading room data...</div>
+      </div>
+    );
   }
 
   const playersArray = roomData.players ? Object.entries(roomData.players) : [];
@@ -214,54 +233,71 @@ export default function LobbyPage() {
   const allPlayersReady = playersArray.length > 0 && playersArray.every(([_, player]) => player.isReady);
 
   return (
-    <div className="container mx-auto p-4">
-      <h1 className="text-3xl font-bold mb-4 text-center">Lobby</h1>
-      <p className="text-xl mb-6 text-center font-mono bg-gray-100 dark:bg-gray-800 p-2 rounded inline-block">
-        Room Code: <span className="font-bold text-blue-600 dark:text-blue-400">{roomCode}</span>
-      </p>
-      <p className="mb-4 text-center text-gray-600 dark:text-gray-400">Status: {roomData.status}</p>
+    <div className="min-h-screen bg-gradient-to-b from-purple-900 to-indigo-900 flex flex-col items-center px-4 py-8">
+      <div className="w-full max-w-2xl bg-purple-800/30 backdrop-blur-sm p-8 rounded-2xl border border-purple-400/20 shadow-lg shadow-purple-500/20">
+        <h1 className="text-3xl font-bold mb-4 text-center text-white tracking-wide animate-pulse">Lobby</h1>
+        <div className="text-center mb-6">
+          <p className="text-xl font-mono bg-purple-700/20 p-3 rounded-lg inline-block border border-purple-400/20">
+            Room Code: <span className="font-bold text-yellow-400">{roomCode}</span>
+          </p>
+          <p className="mt-2 text-purple-200">Status: {roomData.status}</p>
+        </div>
 
-      <div className="bg-white dark:bg-gray-900 shadow-md rounded p-6 mb-6">
-        <h2 className="text-2xl font-semibold mb-4">Players ({playersArray.length})</h2>
-        {playersArray.length === 0 ? (
-          <p className="text-gray-500">Waiting for players...</p>
-        ) : (
-          <ul className="space-y-2">
-            {playersArray.map(([playerId, player]) => (
-              <li key={playerId} className="flex justify-between items-center p-2 bg-gray-50 dark:bg-gray-800 rounded">
-                <span>{player.name || `Player ${playerId.substring(0, 6)}`}</span>
-                {/* Display Ready status */}
-                <span className={`text-sm font-medium px-2 py-0.5 rounded ${player.isReady ? 'bg-green-200 text-green-800 dark:bg-green-700 dark:text-green-100' : 'bg-yellow-200 text-yellow-800 dark:bg-yellow-700 dark:text-yellow-100'}`}>
-                  {player.isReady ? 'Ready' : 'Not Ready'}
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+        <div className="bg-purple-800/20 backdrop-blur-sm p-6 rounded-xl border border-purple-400/20 mb-6">
+          <h2 className="text-2xl font-semibold mb-4 text-white tracking-wide flex items-center gap-2">
+            <span className="animate-bounce">👥</span> Players ({playersArray.length})
+          </h2>
+          {playersArray.length === 0 ? (
+            <p className="text-purple-300 text-center">Waiting for players...</p>
+          ) : (
+            <ul className="space-y-3">
+              {playersArray.map(([playerId, player]) => (
+                <li key={playerId} className="flex justify-between items-center p-3 rounded-lg bg-purple-700/20 hover:bg-purple-700/30 transition-colors">
+                  <span className="text-white font-medium">{player.name || `Player ${playerId.substring(0, 6)}`}</span>
+                  <span className={`text-sm font-medium px-3 py-1 rounded-full ${
+                    player.isReady 
+                      ? 'bg-green-600/30 text-green-400' 
+                      : 'bg-yellow-600/30 text-yellow-400'
+                  }`}>
+                    {player.isReady ? 'Ready' : 'Not Ready'}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
 
-      {/* Action Buttons */}
-      <div className="flex flex-col items-center space-y-4">
-         {/* Ready Button */}
-         {currentPlayer && (
-             <button
-                 onClick={handleReadyClick}
-                 className={`${currentPlayer.isReady ? 'bg-yellow-500 hover:bg-yellow-600' : 'bg-green-500 hover:bg-green-600'} text-white font-bold py-2 px-4 rounded transition duration-150 ease-in-out w-full max-w-xs`}
-             >
-                 {currentPlayer.isReady ? 'Set Not Ready' : 'Set Ready'}
-             </button>
-         )}
-
-         {/* Start Game Button */}
-         {isCreator && (
+        {/* Action Buttons */}
+        <div className="space-y-4">
+          {/* Ready Button */}
+          {currentPlayer && (
             <button
-                onClick={handleStartGameClick}
-                disabled={!allPlayersReady || playersArray.length < 1 || isStarting}
-                className={`bg-blue-500 text-white font-bold py-2 px-4 rounded transition duration-150 ease-in-out w-full max-w-xs ${(!allPlayersReady || playersArray.length < 1 || isStarting) ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-700'}`}
+              onClick={handleReadyClick}
+              className={`w-full py-3 px-4 rounded-xl text-white font-bold transition-all duration-200 hover:scale-105 active:scale-95 ${
+                currentPlayer.isReady 
+                  ? 'bg-yellow-600 hover:bg-yellow-700' 
+                  : 'bg-green-600 hover:bg-green-700'
+              }`}
             >
-                {isStarting ? 'Starting...' : 'Start Game'}
+              {currentPlayer.isReady ? 'Set Not Ready' : 'Set Ready'}
             </button>
-         )}
+          )}
+
+          {/* Start Game Button */}
+          {isCreator && (
+            <button
+              onClick={handleStartGameClick}
+              disabled={!allPlayersReady || playersArray.length < 1 || isStarting}
+              className={`w-full py-3 px-4 rounded-xl text-white font-bold transition-all duration-200 ${
+                !allPlayersReady || playersArray.length < 1 || isStarting
+                  ? 'bg-purple-900/50 cursor-not-allowed'
+                  : 'bg-blue-600 hover:bg-blue-700 hover:scale-105 active:scale-95'
+              }`}
+            >
+              {isStarting ? 'Starting...' : 'Start Game'}
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -21,16 +21,22 @@ export default function Page() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-gradient-to-b from-purple-900 to-indigo-900">
       {/* Header */}
-      <header className="flex h-16 items-center justify-between border-b px-4">
-        <h1 className="text-xl font-bold">RepliQuote"</h1>
+      <header className="flex h-20 items-center justify-between border-b border-purple-400/20 px-6 bg-purple-800/30 backdrop-blur-sm">
+        <h1 className="text-3xl font-bold text-white tracking-wide animate-pulse">
+          RepliQuote<span className="text-yellow-400">!</span>
+        </h1>
         <NavUser user={userData} />
       </header>
 
       {/* Ana içerik alanı */}
-      <main className="flex flex-1 items-center justify-center">
-        <HomeTabs /> {/* 💡 onPlay kaldırıldı, yönlendirme içeride yapılacak */}
+      <main className="flex flex-1 items-center justify-center p-6">
+        <div className="w-full max-w-4xl">
+          <div className="bg-purple-800/30 backdrop-blur-sm rounded-2xl border border-purple-400/20 p-6 shadow-lg shadow-purple-500/20">
+            <HomeTabs />
+          </div>
+        </div>
       </main>
     </div>
   )

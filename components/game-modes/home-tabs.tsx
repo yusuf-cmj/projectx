@@ -143,107 +143,108 @@ export default function HomeTabs() {
   };
 
   return (
-    <Tabs defaultValue="singleplayer" className="w-full max-w-md">
-      <TabsList className="grid w-full grid-cols-2">
-        <TabsTrigger value="singleplayer">
-          <Gamepad className="mr-2 h-4 w-4" /> Singleplayer
-        </TabsTrigger>
-        <TabsTrigger value="multiplayer">
-          <Users className="mr-2 h-4 w-4" /> Multiplayer
-        </TabsTrigger>
-      </TabsList>
+    <div className="flex justify-center items-center min-h-screen bg-gradient-to-b from-purple-900 to-indigo-900">
+      <Tabs defaultValue="singleplayer" className="w-full max-w-md mx-4">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="singleplayer">
+            <Gamepad className="mr-2 h-4 w-4" /> Singleplayer
+          </TabsTrigger>
+          <TabsTrigger value="multiplayer">
+            <Users className="mr-2 h-4 w-4" /> Multiplayer
+          </TabsTrigger>
+        </TabsList>
 
-      {/* SINGLEPLAYER TAB */}
-      <TabsContent value="singleplayer">
-  {showHistory ? (
-    <>
-      <SingleplayerHistory />
-      <div className="text-center mt-4">
-        <Button variant="secondary" onClick={() => setShowHistory(false)}>
-          ⬅ Back
-        </Button>
-      </div>
-    </>
-  ) : (
-    <Card className="hover:shadow-xl transition duration-300">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Gamepad className="h-5 w-5" />
-          Singleplayer Mode
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-4">
-        <div>
-          <p className="text-sm text-muted-foreground mb-1">
-            Play a solo quiz with random quotes from movies and games.
-          </p>
-          <Button
-            variant="default"
-            size="lg"
-            className="w-full"
-            onClick={() => router.push("/singleplayer/play")}
-          >
-            Play
-          </Button>
-        </div>
-        <div>
-          <p className="text-sm text-muted-foreground mb-1">
-            Check your game history and scores.
-          </p>
-          <Button
-            variant="outline"
-            size="lg"
-            className="w-full"
-            onClick={() => setShowHistory(true)} // ✅ TIKLAMA AKTİF
-          >
-            History
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
-  )}
-</TabsContent>
+        {/* SINGLEPLAYER TAB */}
+        <TabsContent value="singleplayer">
+          {showHistory ? (
+            <>
+              <SingleplayerHistory />
+              <div className="text-center mt-4">
+                <Button variant="secondary" onClick={() => setShowHistory(false)}>
+                  ⬅ Back
+                </Button>
+              </div>
+            </>
+          ) : (
+            <Card className="hover:shadow-xl transition duration-300 bg-purple-800/30 backdrop-blur-sm border-purple-400/20">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-white">
+                  <Gamepad className="h-5 w-5" />
+                  Singleplayer Mode
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-4">
+                <div>
+                  <p className="text-sm text-purple-200 mb-1">
+                    Play a solo quiz with random quotes from movies and games.
+                  </p>
+                  <Button
+                    variant="default"
+                    size="lg"
+                    className="w-full"
+                    onClick={() => router.push("/singleplayer/play")}
+                  >
+                    Play
+                  </Button>
+                </div>
+                <div>
+                  <p className="text-sm text-purple-200 mb-1">
+                    Check your game history and scores.
+                  </p>
+                  <Button
+                    variant="outline"
+                    size="lg"
+                    className="w-full"
+                    onClick={() => setShowHistory(true)}
+                  >
+                    History
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
 
-
-      {/* MULTIPLAYER TAB */}
-      <TabsContent value="multiplayer">
-        <Card className="hover:shadow-xl transition duration-300">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5" />
-              Multiplayer Mode
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-4">
-            <div>
-              <p className="text-sm text-muted-foreground mb-1">
-                Join a room and compete with others.
-              </p>
-              <Button
-                variant="default"
-                size="lg"
-                className="w-full"
-                onClick={handleJoinRoom} // Add onClick for Join
-              >
-                Join
-              </Button>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground mb-1">
-                Create a custom room to play with friends.
-              </p>
-              <Button
-                variant="outline"
-                size="lg"
-                className="w-full"
-                onClick={handleCreateRoom} // Add onClick for Create
-               >
-                Create
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </TabsContent>
-    </Tabs>
+        {/* MULTIPLAYER TAB */}
+        <TabsContent value="multiplayer">
+          <Card className="hover:shadow-xl transition duration-300 bg-purple-800/30 backdrop-blur-sm border-purple-400/20">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-white">
+                <Users className="h-5 w-5" />
+                Multiplayer Mode
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-4">
+              <div>
+                <p className="text-sm text-purple-200 mb-1">
+                  Join a room and compete with others.
+                </p>
+                <Button
+                  variant="default"
+                  size="lg"
+                  className="w-full"
+                  onClick={handleJoinRoom}
+                >
+                  Join
+                </Button>
+              </div>
+              <div>
+                <p className="text-sm text-purple-200 mb-1">
+                  Create a custom room to play with friends.
+                </p>
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className="w-full"
+                  onClick={handleCreateRoom}
+                >
+                  Create
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </div>
   )
 }

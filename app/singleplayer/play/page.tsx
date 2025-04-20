@@ -86,7 +86,20 @@ export default function SingleplayerPlayPage() {
     router.push('/dashboard')
   }
 
-  if (!question) return <div className="text-center mt-20">Loading...</div>
+  if (!question) return (
+    <div className="min-h-screen bg-gradient-to-b from-purple-900 to-indigo-900 flex items-center justify-center">
+      <div className="bg-purple-800/30 backdrop-blur-sm p-8 rounded-2xl border border-purple-400/20 shadow-lg shadow-purple-500/20 text-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="text-white text-xl animate-pulse flex items-center gap-2">
+            <span className="animate-spin">🎬</span>
+            Loading question...
+            <span className="animate-spin">🎮</span>
+          </div>
+          <div className="text-purple-300 text-sm">Get ready for an epic quiz adventure!</div>
+        </div>
+      </div>
+    </div>
+  )
 
   const getProgressColor = () => {
     if (timeLeft > 20) return 'bg-green-500'
@@ -97,13 +110,24 @@ export default function SingleplayerPlayPage() {
 
   if (showResult) {
     return (
-      <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center px-4">
-        <div className="bg-white p-8 rounded-xl shadow-xl text-center max-w-lg w-full mt-6">
-          <h2 className="text-2xl font-bold mb-4">Quiz Complete 🎉</h2>
-          <p className="text-lg mb-2">Your Total Score:</p>
-          <p className="text-4xl font-bold text-green-600">{score} points</p>
-          <div className="mt-6">
-            <Button onClick={() => router.push('/dashboard')}>Back to Menu</Button>
+      <div className="min-h-screen bg-gradient-to-b from-purple-900 to-indigo-900 flex flex-col items-center justify-center px-4">
+        <div className="bg-purple-800/30 backdrop-blur-sm p-8 rounded-2xl border border-purple-400/20 shadow-lg shadow-purple-500/20 text-center max-w-lg w-full">
+          <h2 className="text-3xl font-bold mb-4 text-white tracking-wide animate-pulse flex items-center justify-center gap-2">
+            <span className="animate-bounce">🎬</span>
+            Quiz Complete 
+            <span className="animate-bounce">🎮</span>
+          </h2>
+          <p className="text-xl mb-2 text-purple-200">Your Total Score:</p>
+          <p className="text-5xl font-bold text-yellow-400 animate-bounce">{score} points</p>
+          <div className="mt-8">
+            <Button 
+              variant="default" 
+              size="lg" 
+              onClick={() => router.push('/dashboard')}
+              className="w-full bg-purple-600 hover:bg-purple-700 transition-all duration-200 hover:scale-105 active:scale-95"
+            >
+              Back to Menu
+            </Button>
           </div>
         </div>
       </div>
@@ -111,19 +135,21 @@ export default function SingleplayerPlayPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col items-center px-4">
-      <div className="w-full max-w-4xl bg-white pt-4 px-6 pb-6 rounded-xl shadow-md mt-10 relative">
+    <div className="min-h-screen bg-gradient-to-b from-purple-900 to-indigo-900 flex flex-col items-center px-4 py-8">
+      <div className="w-full max-w-4xl bg-purple-800/30 backdrop-blur-sm pt-6 px-8 pb-8 rounded-2xl border border-purple-400/20 shadow-lg shadow-purple-500/20 relative">
         {/* Çıkış butonu ve dialog */}
         <div className="absolute top-4 right-4">
           <Dialog open={showExitDialog} onOpenChange={setShowExitDialog}>
             <DialogTrigger asChild>
-              <Button variant="ghost" size="icon">
+              <Button variant="ghost" size="icon" className="text-purple-200 hover:text-white">
                 <X className="w-6 h-6" />
               </Button>
             </DialogTrigger>
-            <DialogContent className="text-center">
-              <DialogTitle>Exit Game</DialogTitle>
-              <p className="text-sm text-muted-foreground mb-6">Are you sure you want to exit? Your game progress will be lost.</p>
+            <DialogContent className="bg-purple-800/30 backdrop-blur-sm border-purple-400/20 text-white">
+              <DialogTitle className="text-2xl font-bold flex items-center gap-2">
+                <span>🎬</span> Exit Game <span>🎮</span>
+              </DialogTitle>
+              <p className="text-purple-200 mb-6">Are you sure you want to exit? Your game progress will be lost.</p>
               <div className="flex justify-center gap-4">
                 <Button variant="secondary" onClick={() => setShowExitDialog(false)}>Cancel</Button>
                 <Button variant="destructive" onClick={handleExitConfirm}>Back to Menu</Button>
@@ -132,52 +158,65 @@ export default function SingleplayerPlayPage() {
           </Dialog>
         </div>
 
-        <div className="mb-4 relative h-3 w-full bg-neutral-300 rounded overflow-hidden">
+        <div className="mb-6 relative h-4 w-full bg-purple-900/50 rounded-full overflow-hidden">
           <div
             className={`absolute left-0 top-0 h-full transition-all duration-500 ease-linear ${getProgressColor()}`}
             style={{ width: `${(timeLeft / 30) * 100}%` }}
           />
         </div>
 
-        <h2 className="text-center text-xl font-bold mb-4">Question {questionIndex}/5</h2>
-        <p className="text-center text-sm text-muted-foreground mb-4">
+        <h2 className="text-center text-2xl font-bold mb-2 text-white tracking-wide flex items-center justify-center gap-2">
+          <span className="animate-pulse">🎬</span>
+          Question {questionIndex}/5
+          <span className="animate-pulse">🎮</span>
+        </h2>
+        <p className="text-center text-lg text-purple-200 mb-6">
           {question.source === 'film' ? '🎬 Movie Question' : '🎮 Game Question'}
         </p>
 
         {question.media?.image && (
-          <img src={question.media.image} alt="scene" className="w-full h-64 object-contain rounded mb-4" />
+          <div className="flex justify-center items-center mb-6">
+            <img 
+              src={question.media.image} 
+              alt="scene" 
+              className="max-w-full max-h-96 w-auto h-auto object-contain rounded-lg border border-purple-400/20 shadow-lg shadow-purple-500/20" 
+            />
+          </div>
         )}
+        
         {question.media?.voice_record && (
-          <audio
-            key={question.media.voice_record}
-            controls
-            className="w-full mb-4"
-            autoPlay={false}
-          >
-            <source src={question.media.voice_record} type="audio/mp3" />
-            Your browser does not support the audio element.
-          </audio>
+          <div className="flex justify-center items-center mb-6">
+            <audio
+              key={question.media.voice_record}
+              controls
+              className="w-full max-w-md"
+              autoPlay={false}
+            >
+              <source src={question.media.voice_record} type="audio/mp3" />
+              Your browser does not support the audio element.
+            </audio>
+          </div>
         )}
 
-        <p className="text-center mb-6 font-medium">{question.questionText}</p>
+        <p className="text-center mb-8 text-xl font-medium text-white">{question.questionText}</p>
 
         <div className="grid grid-cols-2 gap-4">
           {question.options.map((opt: string, idx: number) => {
             const isCorrect = opt === question.correctAnswer
             const isSelected = selectedOption === opt
 
-            let color = "bg-muted hover:bg-primary/10"
+            let color = "bg-purple-700/50 hover:bg-purple-600/50 text-white"
             if (selectedOption || timeLeft <= 0) {
-              color = isCorrect ? "bg-green-500 text-white"
-                : isSelected ? "bg-red-500 text-white"
-                  : "bg-gray-200 text-gray-500"
+              color = isCorrect ? "bg-green-600 text-white"
+                : isSelected ? "bg-red-600 text-white"
+                  : "bg-purple-900/50 text-purple-300"
             }
 
             return (
               <button
                 key={idx}
                 onClick={() => handleOptionClick(opt)}
-                className={`py-4 px-6 rounded-lg text-center text-sm font-semibold w-full h-full ${color}`}
+                className={`py-4 px-6 rounded-xl text-center text-lg font-semibold w-full h-full ${color} transition-all duration-200 hover:scale-105 active:scale-95`}
                 disabled={!!selectedOption || timeLeft <= 0}
               >
                 {opt}
@@ -187,8 +226,15 @@ export default function SingleplayerPlayPage() {
         </div>
 
         {(showNext || timeLeft <= 0) && (
-          <div className="mt-6 text-center">
-            <Button onClick={handleNext}>Next Question</Button>
+          <div className="mt-8 text-center">
+            <Button 
+              variant="default" 
+              size="lg" 
+              onClick={handleNext}
+              className="w-full bg-purple-600 hover:bg-purple-700 transition-all duration-200 hover:scale-105 active:scale-95"
+            >
+              Next Question
+            </Button>
           </div>
         )}
       </div>
