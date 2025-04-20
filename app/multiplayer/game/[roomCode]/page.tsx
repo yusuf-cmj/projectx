@@ -37,6 +37,7 @@ interface RoomData {
   currentQuestionIndex?: number;
   currentQuestionStartTime?: any; // Can be number (timestamp) or object (serverTimestamp placeholder)
   answers?: { [questionIndex: number]: { [playerId: string]: { answer: string; timestamp: any } } }; // Store answer and time
+  preloadMediaUrl?: string | null;
 }
 
 const QUESTION_DURATION = 30; // Seconds for each question
@@ -65,39 +66,31 @@ export default function MultiplayerGamePage() {
         return Math.max(0, QUESTION_DURATION - elapsed);
     };
 
-    // --- Function to move to next question or end game ---
+    // --- Function to move to next question or end game (RUNS ONLY ON CREATOR) ---
     const moveToNextQuestionOrEnd = async () => {
-        if (!roomData || !currentQuestion || !userId || userId !== roomData.creatorId) return; // Only creator can trigger
+        // Double-check conditions on entry
+        if (!roomData || !currentQuestion || !userId || userId !== roomData.creatorId || roomData.status !== 'in-game') {
+             console.warn("moveToNextQuestionOrEnd called prematurely or by non-creator.");
+             return;
+        }
 
-        console.log("Checking conditions to move to next question...");
+        console.log("Creator moving to next question/end...");
         const currentIndex = roomData.currentQuestionIndex ?? -1;
         const totalQuestions = roomData.questions?.length ?? 0;
         const playersInRoom = Object.keys(roomData.players || {});
         const answersForCurrentQuestion = roomData.answers?.[currentIndex] ?? {};
-        const answeredPlayerIds = Object.keys(answersForCurrentQuestion);
 
-        console.log(`Index: ${currentIndex}, TotalQ: ${totalQuestions}, Players: ${playersInRoom.length}, Answers: ${answeredPlayerIds.length}, TimeLeft: ${timeLeft}`);
-
-        // Prevent double execution if already processing
-        // You might need a state like `isTransitioning` if this becomes an issue
-
-        // --- SCORING LOGIC (Placeholder) ---
-        console.log("Calculating scores...");
+        // --- SCORING LOGIC --- 
         const scoreUpdates: { [key: string]: any } = {};
         playersInRoom.forEach(playerId => {
-            const playerData = roomData.players[playerId];
-            const playerAnswerData = answersForCurrentQuestion[playerId];
-            let scoreChange = -5; // Penalty for not answering or wrong answer
-            if (playerAnswerData) {
-                if (playerAnswerData.answer === currentQuestion.correctAnswer) {
-                     // Calculate score based on time? Need answer timestamp vs start timestamp
-                     // For now, let's use timeLeft like singleplayer (less accurate in multiplayer)
-                     scoreChange = timeLeft > 0 ? timeLeft : 5; // Award some points even if time ran out but answered correctly
-                } 
-            }
-            const newScore = (playerData.score || 0) + scoreChange;
-            scoreUpdates[`players/${playerId}/score`] = newScore;
-            console.log(`Player ${playerId}: Old Score ${playerData.score}, Change ${scoreChange}, New Score ${newScore}`);
+           const playerData = roomData.players[playerId];
+           const playerAnswerData = answersForCurrentQuestion[playerId];
+           let scoreChange = -5; // Penalty
+           if (playerAnswerData && playerAnswerData.answer === currentQuestion.correctAnswer) {
+                scoreChange = timeLeft > 0 ? timeLeft : 5; // Basic score 
+           }
+           const newScore = (playerData.score || 0) + scoreChange;
+           scoreUpdates[`players/${playerId}/score`] = newScore;
         });
         // --- END SCORING LOGIC ---
 
@@ -105,61 +98,84 @@ export default function MultiplayerGamePage() {
         try {
             if (currentIndex >= totalQuestions - 1) {
                 // --- END GAME ---
-                console.log("Game finished!");
-                await update(ref(db, `rooms/${roomCode}`), { 
+                console.log("Game finished! Updating status.");
+                await update(ref(db, `rooms/${roomCode}`), {
                     status: 'finished',
-                     ...scoreUpdates // Apply final score updates
+                    preloadMediaUrl: null, // Clear preload URL at the end
+                    ...scoreUpdates
                 });
-                // Navigation to results page is handled by the main listener
             } else {
                 // --- NEXT QUESTION ---
-                console.log("Moving to next question...");
                 const nextIndex = currentIndex + 1;
+                const nextQuestion = roomData.questions?.[nextIndex];
+                let nextMediaUrl: string | null = null;
+                if (nextQuestion?.media?.image) {
+                    nextMediaUrl = nextQuestion.media.image;
+                } else if (nextQuestion?.media?.voice_record) {
+                    nextMediaUrl = nextQuestion.media.voice_record;
+                }
+                console.log(`Moving to next question (${nextIndex}). Preloading media: ${nextMediaUrl ?? 'None'}`);
+
                 await update(ref(db, `rooms/${roomCode}`), {
                     currentQuestionIndex: nextIndex,
                     currentQuestionStartTime: serverTimestamp(),
-                    // Optionally clear answers for the *next* question if reusing structure?
-                    // [`answers/${nextIndex}`]: null, 
-                    ...scoreUpdates // Apply score updates from previous question
+                    preloadMediaUrl: nextMediaUrl, // Add URL for clients to preload
+                    ...scoreUpdates
                 });
             }
         } catch (error) {
             console.error("Error during question transition:", error);
-            // Handle error appropriately
         }
         // --- END TRANSITION LOGIC ---
     };
 
-    // --- Effect for Creator to Check Transition Conditions ---
+    // --- Effect for Creator to Check Transition Conditions (Existing) ---
     useEffect(() => {
-        // Ensure all data is loaded and user is the creator
         if (!roomData || !userId || userId !== roomData.creatorId || roomData.status !== 'in-game') {
             return;
         }
-
         const currentIndex = roomData.currentQuestionIndex ?? -1;
-        if (currentIndex < 0 || !roomData.questions || currentIndex >= roomData.questions.length) {
-             return; // Not a valid question index
-        }
-
+         if (currentIndex < 0 || !roomData.questions || currentIndex >= roomData.questions.length) {
+             return; 
+         }
         const playersInRoom = Object.keys(roomData.players || {});
         const answersForCurrentQuestion = roomData.answers?.[currentIndex] ?? {};
         const answeredPlayerIds = Object.keys(answersForCurrentQuestion);
-
         const allPlayersAnswered = answeredPlayerIds.length >= playersInRoom.length;
         const timeIsUp = timeLeft <= 0;
 
-        // Check if conditions are met
         if (allPlayersAnswered || timeIsUp) {
-            console.log(`Transition condition met: All Answered = ${allPlayersAnswered}, Time Up = ${timeIsUp}`);
-            // Call the transition function
-            // Add a small delay to allow final answers/UI updates?
-            // setTimeout(() => moveToNextQuestionOrEnd(), 500); // Optional delay
-             moveToNextQuestionOrEnd(); 
+             // Prevent multiple rapid calls if state updates slightly delayed
+            const alreadyProcessedKey = `processed_${currentIndex}`; 
+            if (!(window as any)[alreadyProcessedKey]) {
+                 (window as any)[alreadyProcessedKey] = true;
+                 console.log(`Creator triggering transition for index ${currentIndex}. All Answered: ${allPlayersAnswered}, Time Up: ${timeIsUp}`);
+                 moveToNextQuestionOrEnd();
+                 // Reset flag for the next potential transition check after a delay
+                 // This is a simple debounce/flag mechanism
+                 setTimeout(() => { (window as any)[alreadyProcessedKey] = false; }, 1500); 
+            }
         }
+    }, [roomData?.answers, roomData?.currentQuestionIndex, timeLeft, roomData?.creatorId, userId, roomData?.status, roomData?.players]); // Dependencies adjusted slightly
 
-        // Depend on answers for the specific index and time left
-    }, [roomData?.answers, roomData?.currentQuestionIndex, timeLeft, roomData?.creatorId, userId, roomData?.status, roomData?.players]);
+    // --- Effect for Preloading Media (All Clients) ---
+    useEffect(() => {
+        if (roomData?.preloadMediaUrl) {
+            const url = roomData.preloadMediaUrl;
+            console.log("Preloading media:", url);
+            if (url.endsWith('.jpg') || url.endsWith('.png') || url.endsWith('.jpeg') || url.endsWith('.gif') || url.endsWith('.webp')) {
+                // Preload image
+                const img = new Image();
+                img.src = url;
+            } else if (url.endsWith('.mp3') || url.endsWith('.ogg') || url.endsWith('.wav')) {
+                // Preload audio - less straightforward, creating an audio element might work
+                 const audio = document.createElement('audio');
+                 audio.preload = 'auto'; // Hint to the browser to preload
+                 audio.src = url;
+                 // Note: Actual preloading effectiveness varies by browser
+            }
+        }
+    }, [roomData?.preloadMediaUrl]); // Run only when preloadMediaUrl changes
 
     // Effect to update question and manage timer
     useEffect(() => {
