@@ -260,7 +260,7 @@ export default function SingleplayerPlayPage() {
                   Exit Game
                 </DialogTitle>
                 <DialogDescription className="text-purple-200 pt-2">
-                  Are you sure? Your current score ({score}) will be saved, but you'll exit the quiz.
+                  Are you sure? Your current score ({score}) will be saved, but you&apos;ll exit the quiz.
                 </DialogDescription>
               </DialogHeader>
               <div className="flex justify-end gap-3 pt-4">
