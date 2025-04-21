@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { db } from '@/lib/firebase'; // Adjust path if needed
-import { ref, onValue, off, update, serverTimestamp } from 'firebase/database';
+import { ref, onValue, off, update, serverTimestamp, remove } from 'firebase/database';
 import { useSession } from 'next-auth/react'; // Import useSession
 // import { useAuth } from '@/context/AuthContext'; // Assuming you have an AuthContext
 
@@ -73,6 +73,26 @@ export default function LobbyPage() {
         if (data.status === 'in-game') {
           console.log('Game started, navigating to game screen...');
           router.push(`/multiplayer/game/${roomCode}`);
+          // No need to check for empty room if game started
+          setLoading(false); // Ensure loading is set false here too
+          return; // Exit early
+        }
+        // *****************************************
+
+        // *** ADDED: Check for empty room cleanup (by creator) ***
+        const playerCount = data.players ? Object.keys(data.players).length : 0;
+        // Check if current user is the creator AFTER session data is available
+        const currentUserId = session?.user?.id; 
+        const isCreator = currentUserId && data.creatorId === currentUserId;
+
+        if (playerCount === 0 && isCreator && data.status === 'waiting') {
+            console.log(`Creator ${currentUserId} detected an empty lobby (${roomCode}). Removing room...`);
+            // Remove the room immediately if empty and in waiting status
+            remove(roomRef)
+                .then(() => console.log(`Room ${roomCode} successfully removed by creator.`))
+                .catch((err) => console.error(`Error removing empty room ${roomCode}:`, err));
+            // Note: The listener will naturally stop receiving updates after removal.
+            // No need to explicitly navigate here, error handling will show room not found.
         }
         // *****************************************
 
@@ -80,7 +100,7 @@ export default function LobbyPage() {
         setRoomData(null);
         setError(`Room with code "${roomCode}" not found or has been closed.`);
       }
-      setLoading(false);
+      setLoading(false); // Set loading false after processing data or error
     }, (err) => {
       console.error("Firebase read failed: ", err);
       setError('Failed to load room data. Please try again.');
@@ -90,7 +110,7 @@ export default function LobbyPage() {
     // Cleanup listener when the component unmounts
     return () => off(roomRef, 'value', unsubscribe);
 
-  }, [roomCode, router]); // Add router to dependency array
+  }, [roomCode, router, session]); // Add session to dependency array to ensure userId is available
 
   // Get current user ID and player data
   const userId = session?.user?.id;

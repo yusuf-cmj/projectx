@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import NextImage from 'next/image';
 import { useParams, useRouter } from 'next/navigation';
 import { db } from '@/lib/firebase';
-import { ref, onValue, off, update, serverTimestamp } from 'firebase/database';
+import { ref, onValue, off, update, serverTimestamp, remove } from 'firebase/database';
 import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { toast } from "sonner";
@@ -75,6 +75,9 @@ export default function MultiplayerGamePage() {
     const [currentTime, setCurrentTime] = useState(0);
     const [duration, setDuration] = useState(0);
 
+    // Ref to track if a room deletion timeout is already scheduled
+    const deletionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
     const calculateTimeLeft = (startTime: number | undefined) => {
         if (!startTime) return QUESTION_DURATION;
         const now = Date.now();
@@ -118,6 +121,29 @@ export default function MultiplayerGamePage() {
                     preloadMediaUrl: null, // Clear preload URL at the end
                     ...scoreUpdates
                 });
+
+                // *** ADDED: Schedule room deletion after a delay ***
+                if (!deletionTimeoutRef.current) { // Prevent multiple timeouts
+                    console.log(`Scheduling room ${roomCode} deletion in 2 minutes.`);
+                    deletionTimeoutRef.current = setTimeout(() => {
+                        const roomRef = ref(db, `rooms/${roomCode}`);
+                        // Double-check status before deleting
+                        onValue(roomRef, (snapshot) => {
+                            if (snapshot.exists() && snapshot.val().status === 'finished') {
+                                console.log(`Deleting finished room ${roomCode} after delay.`);
+                                remove(roomRef)
+                                    .then(() => console.log(`Room ${roomCode} successfully removed.`))
+                                    .catch((err) => console.error(`Error removing room ${roomCode}:`, err));
+                            } else {
+                                console.log(`Room ${roomCode} deletion cancelled (not found or status changed).`);
+                            }
+                        }, { onlyOnce: true }); // Use onlyOnce to read just once
+
+                        deletionTimeoutRef.current = null; // Clear the ref after execution
+                    }, 2 * 60 * 1000); // 2 minutes delay
+                }
+                // ***************************************************
+
             } else {
                 // --- NEXT QUESTION ---
                 const nextIndex = currentIndex + 1;
