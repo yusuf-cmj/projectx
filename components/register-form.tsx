@@ -68,23 +68,23 @@ export function RegisterForm({
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
-      <Card>
+      <Card className="bg-purple-800/30 backdrop-blur-sm border-purple-400/20 shadow-lg shadow-purple-500/20">
         <CardHeader>
-          <CardTitle>Create an account</CardTitle>
-          <CardDescription>
+          <CardTitle className="text-white">Create an account</CardTitle>
+          <CardDescription className="text-purple-200">
             Enter your details below to create your account
           </CardDescription>
         </CardHeader>
         <CardContent>
           {error && (
-            <div className="mb-4 text-sm text-red-500">
+            <div className="mb-4 text-sm text-red-400">
               {error}
             </div>
           )}
           <form onSubmit={handleSubmit}>
             <div className="flex flex-col gap-6">
               <div className="grid gap-3">
-                <Label htmlFor="name">Full Name</Label>
+                <Label htmlFor="name" className="text-white">Full Name</Label>
                 <Input
                   id="name"
                   type="text"
@@ -93,10 +93,11 @@ export function RegisterForm({
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   disabled={loading}
+                  className="bg-purple-700/50 border-purple-400/20 text-white placeholder:text-purple-300"
                 />
               </div>
               <div className="grid gap-3">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email" className="text-white">Email</Label>
                 <Input
                   id="email"
                   type="email"
@@ -105,10 +106,11 @@ export function RegisterForm({
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   disabled={loading}
+                  className="bg-purple-700/50 border-purple-400/20 text-white placeholder:text-purple-300"
                 />
               </div>
               <div className="grid gap-3">
-                <Label htmlFor="password">Password</Label>
+                <Label htmlFor="password" className="text-white">Password</Label>
                 <Input 
                   id="password" 
                   type="password" 
@@ -116,10 +118,11 @@ export function RegisterForm({
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   disabled={loading}
+                  className="bg-purple-700/50 border-purple-400/20 text-white"
                 />
               </div>
               <div className="grid gap-3">
-                <Label htmlFor="confirmPassword">Confirm Password</Label>
+                <Label htmlFor="confirmPassword" className="text-white">Confirm Password</Label>
                 <Input 
                   id="confirmPassword" 
                   type="password" 
@@ -127,21 +130,22 @@ export function RegisterForm({
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   disabled={loading}
+                  className="bg-purple-700/50 border-purple-400/20 text-white"
                 />
               </div>
               <div className="flex flex-col gap-3">
                 <Button 
                   type="submit" 
-                  className="w-full"
+                  className="w-full bg-purple-600 hover:bg-purple-700 transition-all duration-200 hover:scale-105 active:scale-95"
                   disabled={loading}
                 >
                   {loading ? "Creating Account..." : "Create Account"}
                 </Button>
               </div>
             </div>
-            <div className="mt-4 text-center text-sm">
+            <div className="mt-4 text-center text-sm text-purple-200">
               Already have an account?{" "}
-              <Link href="/login" className="underline underline-offset-4">
+              <Link href="/login" className="text-white hover:text-purple-200 underline underline-offset-4">
                 Login
               </Link>
             </div>

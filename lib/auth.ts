@@ -1,10 +1,13 @@
 import { PrismaAdapter } from "@auth/prisma-adapter"
-import { NextAuthOptions } from "next-auth"
+import { NextAuthOptions, User } from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
 import { compare } from "bcrypt"
 import { prisma } from "./prisma"
 
 export const authOptions: NextAuthOptions = {
+    // TODO: Investigate adapter type mismatch between next-auth and @auth/prisma-adapter
+    // Using `as any` as a temporary workaround for build error.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     adapter: PrismaAdapter(prisma) as any,
     session: {
         strategy: "jwt",
@@ -22,7 +25,7 @@ export const authOptions: NextAuthOptions = {
                 email: { label: "Email", type: "email" },
                 password: { label: "Password", type: "password" }
             },
-            async authorize(credentials): Promise<any> {
+            async authorize(credentials): Promise<User | null> {
                 if (!credentials?.email || !credentials?.password) {
                     throw new Error("Invalid credentials")
                 }
@@ -50,7 +53,8 @@ export const authOptions: NextAuthOptions = {
                     id: user.id,
                     email: user.email,
                     name: user.name,
-                    image: user.image
+                    image: user.image,
+                    role: user.role || 'user',
                 }
             }
         })
@@ -76,7 +80,7 @@ export const authOptions: NextAuthOptions = {
         }
     },
     events: {
-        async signOut({ token }) {
+        async signOut() {
             // You can perform any cleanup here if needed
         }
     }
