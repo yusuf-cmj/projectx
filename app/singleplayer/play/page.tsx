@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import NextImage from 'next/image'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
@@ -34,7 +34,7 @@ export default function SingleplayerPlayPage() {
   const [showExitDialog, setShowExitDialog] = useState(false)
   const { data: session } = useSession()
 
-  const saveScore = async (finalScore: number) => {
+  const saveScore = useCallback(async (finalScore: number) => {
     if (!session?.user?.id) {
       console.error("Cannot save score: User not logged in.");
       return; 
@@ -54,7 +54,7 @@ export default function SingleplayerPlayPage() {
       console.error("Error saving game score:", error);
       toast.error(error instanceof Error ? error.message : "Could not save score");
     }
-  };
+  }, [session]);
 
   useEffect(() => {
     const loadQuestion = async () => {
@@ -110,7 +110,7 @@ export default function SingleplayerPlayPage() {
     if (showResult) {
       saveScore(score);
     }
-  }, [showResult, score]);
+  }, [showResult, score, saveScore]);
 
   const handleExitConfirm = () => {
     setShowExitDialog(false)
