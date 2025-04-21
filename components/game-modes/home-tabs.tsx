@@ -143,8 +143,8 @@ export default function HomeTabs() {
   };
 
   return (
-    <div className="flex justify-center items-center min-h-screen bg-gradient-to-b from-purple-900 to-indigo-900">
-      <Tabs defaultValue="singleplayer" className="w-full max-w-md mx-4">
+    <div>
+      <Tabs defaultValue="singleplayer" className="w-full max-w-md mx-auto">
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="singleplayer">
             <Gamepad className="mr-2 h-4 w-4" /> Singleplayer
@@ -167,20 +167,20 @@ export default function HomeTabs() {
             </>
           ) : (
             <Card className="hover:shadow-xl transition duration-300 bg-purple-800/30 backdrop-blur-sm border-purple-400/20">
-              <CardHeader>
+              <CardHeader className="py-3">
                 <CardTitle className="flex items-center gap-2 text-white">
                   <Gamepad className="h-5 w-5" />
                   Singleplayer Mode
                 </CardTitle>
               </CardHeader>
-              <CardContent className="flex flex-col gap-4">
+              <CardContent className="flex flex-col gap-3 py-3">
                 <div>
-                  <p className="text-sm text-purple-200 mb-1">
+                  <p className="text-xs text-purple-200 mb-1.5">
                     Play a solo quiz with random quotes from movies and games.
                   </p>
                   <Button
                     variant="default"
-                    size="lg"
+                    size="default"
                     className="w-full"
                     onClick={() => router.push("/singleplayer/play")}
                   >
@@ -188,12 +188,12 @@ export default function HomeTabs() {
                   </Button>
                 </div>
                 <div>
-                  <p className="text-sm text-purple-200 mb-1">
+                  <p className="text-xs text-purple-200 mb-1.5">
                     Check your game history and scores.
                   </p>
                   <Button
                     variant="outline"
-                    size="lg"
+                    size="default"
                     className="w-full"
                     onClick={() => setShowHistory(true)}
                   >
@@ -208,20 +208,20 @@ export default function HomeTabs() {
         {/* MULTIPLAYER TAB */}
         <TabsContent value="multiplayer">
           <Card className="hover:shadow-xl transition duration-300 bg-purple-800/30 backdrop-blur-sm border-purple-400/20">
-            <CardHeader>
+            <CardHeader className="py-3">
               <CardTitle className="flex items-center gap-2 text-white">
                 <Users className="h-5 w-5" />
                 Multiplayer Mode
               </CardTitle>
             </CardHeader>
-            <CardContent className="flex flex-col gap-4">
+            <CardContent className="flex flex-col gap-3 py-3">
               <div>
-                <p className="text-sm text-purple-200 mb-1">
+                <p className="text-xs text-purple-200 mb-1.5">
                   Join a room and compete with others.
                 </p>
                 <Button
                   variant="default"
-                  size="lg"
+                  size="default"
                   className="w-full"
                   onClick={handleJoinRoom}
                 >
@@ -229,12 +229,12 @@ export default function HomeTabs() {
                 </Button>
               </div>
               <div>
-                <p className="text-sm text-purple-200 mb-1">
+                <p className="text-xs text-purple-200 mb-1.5">
                   Create a custom room to play with friends.
                 </p>
                 <Button
                   variant="outline"
-                  size="lg"
+                  size="default"
                   className="w-full"
                   onClick={handleCreateRoom}
                 >

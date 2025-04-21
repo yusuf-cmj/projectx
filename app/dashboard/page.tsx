@@ -30,10 +30,10 @@ export default function Page() {
         <NavUser user={userData} />
       </header>
 
-      {/* Ana içerik alanı */}
-      <main className="flex flex-1 items-center justify-center p-6">
+      {/* Ana içerik alanı - Dikey olarak ortalanmış */}
+      <main className="flex flex-1 justify-center items-center p-4">
         <div className="w-full max-w-4xl">
-          <div className="bg-purple-800/30 backdrop-blur-sm rounded-2xl border border-purple-400/20 p-6 shadow-lg shadow-purple-500/20">
+          <div className="bg-purple-800/30 backdrop-blur-sm rounded-2xl border border-purple-400/20 p-8 py-20 shadow-lg shadow-purple-500/20">
             <HomeTabs />
           </div>
         </div>
