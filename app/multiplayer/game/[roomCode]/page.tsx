@@ -7,6 +7,8 @@ import { db } from '@/lib/firebase';
 import { ref, onValue, off, update, serverTimestamp } from 'firebase/database';
 import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
+import { toast } from "sonner";
+import { Timer, Film, Gamepad2, Play, Pause } from 'lucide-react';
 
 // Interfaces (match backend QuestionFormat)
 interface Quote {
@@ -40,6 +42,14 @@ interface RoomData {
   preloadMediaUrl?: string | null;
 }
 
+// Helper to format time (MM:SS) - Copied from singleplayer
+const formatTime = (seconds: number): string => {
+  if (isNaN(seconds) || seconds < 0) return "00:00";
+  const minutes = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+};
+
 const QUESTION_DURATION = 30; // Seconds for each question
 
 export default function MultiplayerGamePage() {
@@ -55,11 +65,16 @@ export default function MultiplayerGamePage() {
     const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [timeLeft, setTimeLeft] = useState(QUESTION_DURATION);
-    const timerIntervalRef = useRef<NodeJS.Timeout | null>(null); // Ref to store timer interval
-    const processedIndexRef = useRef<number | null>(null); // Ref to track processed index
+    const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
+    const processedIndexRef = useRef<number | null>(null);
     const userId = session?.user?.id;
 
-    // Function to calculate time left based on server start time
+    // Audio player state - Added
+    const audioRef = useRef<HTMLAudioElement>(null);
+    const [isPlaying, setIsPlaying] = useState(false);
+    const [currentTime, setCurrentTime] = useState(0);
+    const [duration, setDuration] = useState(0);
+
     const calculateTimeLeft = (startTime: number | undefined) => {
         if (!startTime) return QUESTION_DURATION;
         const now = Date.now();
@@ -67,9 +82,7 @@ export default function MultiplayerGamePage() {
         return Math.max(0, QUESTION_DURATION - elapsed);
     };
 
-    // --- Function to move to next question or end game (RUNS ONLY ON CREATOR) ---
     const moveToNextQuestionOrEnd = useCallback(async () => {
-        // Double-check conditions on entry
         if (!roomData || !currentQuestion || !userId || userId !== roomData.creatorId || roomData.status !== 'in-game') {
              console.warn("moveToNextQuestionOrEnd called prematurely or by non-creator.");
              return;
@@ -126,11 +139,11 @@ export default function MultiplayerGamePage() {
             }
         } catch (error) {
             console.error("Error during question transition:", error);
+            toast.error("Error changing question. Please check connection.");
         }
         // --- END TRANSITION LOGIC ---
     }, [roomData, currentQuestion, userId, roomCode, timeLeft]);
 
-    // --- Effect for Creator to Check Transition Conditions (Existing) ---
     useEffect(() => {
         if (!roomData || !userId || userId !== roomData.creatorId || roomData.status !== 'in-game') {
             return;
@@ -146,37 +159,29 @@ export default function MultiplayerGamePage() {
         const timeIsUp = timeLeft <= 0;
 
         if (allPlayersAnswered || timeIsUp) {
-             // Prevent multiple rapid calls using ref
             if (processedIndexRef.current !== currentIndex) {
-                 processedIndexRef.current = currentIndex; // Mark as processing/processed
+                 processedIndexRef.current = currentIndex;
                  console.log(`Creator triggering transition for index ${currentIndex}. All Answered: ${allPlayersAnswered}, Time Up: ${timeIsUp}`);
                  moveToNextQuestionOrEnd();
-                 // No need for setTimeout flag reset with ref approach
             }
         }
-    // Added moveToNextQuestionOrEnd and roomData as dependencies
     }, [roomData, timeLeft, userId, moveToNextQuestionOrEnd]); 
 
-    // --- Effect for Preloading Media (All Clients) ---
     useEffect(() => {
         if (roomData?.preloadMediaUrl) {
             const url = roomData.preloadMediaUrl;
             console.log("Preloading media:", url);
             if (url.endsWith('.jpg') || url.endsWith('.png') || url.endsWith('.jpeg') || url.endsWith('.gif') || url.endsWith('.webp')) {
-                // Preload image
                 const img = new Image();
                 img.src = url;
             } else if (url.endsWith('.mp3') || url.endsWith('.ogg') || url.endsWith('.wav')) {
-                // Preload audio - less straightforward, creating an audio element might work
                  const audio = document.createElement('audio');
-                 audio.preload = 'auto'; // Hint to the browser to preload
+                 audio.preload = 'auto';
                  audio.src = url;
-                 // Note: Actual preloading effectiveness varies by browser
             }
         }
-    }, [roomData?.preloadMediaUrl]); // Run only when preloadMediaUrl changes
+    }, [roomData?.preloadMediaUrl]); 
 
-    // Effect to update question and manage timer
     useEffect(() => {
         if (!roomData || roomData.currentQuestionIndex === undefined) return;
 
@@ -189,30 +194,32 @@ export default function MultiplayerGamePage() {
         setSelectedAnswer(null);
         setIsSubmitting(false);
 
+        // Reset audio state for new question - Added
+        setIsPlaying(false);
+        setCurrentTime(0);
+        setDuration(0);
+        if (audioRef.current) {
+          audioRef.current.currentTime = 0; // Reset audio element time
+        }
+
         // --- Timer Logic ---
-        // Clear any existing timer
         if (timerIntervalRef.current) {
             clearInterval(timerIntervalRef.current);
             timerIntervalRef.current = null;
         }
-
         if (question && roomData.status === 'in-game') {
-            // Attempt to get start time (might be object or number)
             const startTime = typeof roomData.currentQuestionStartTime === 'number' 
                                 ? roomData.currentQuestionStartTime 
-                                : undefined; // Can't start timer reliably without a number timestamp yet
-
+                                : undefined; 
             if (startTime) {
                 const initialTimeLeft = calculateTimeLeft(startTime);
                 setTimeLeft(initialTimeLeft);
-
                 if (initialTimeLeft > 0) {
                     timerIntervalRef.current = setInterval(() => {
                         setTimeLeft(prev => {
                             if (prev <= 1) {
                                 clearInterval(timerIntervalRef.current!); 
                                 timerIntervalRef.current = null;
-                                // Time's up logic will be handled by next question check
                                 return 0;
                             }
                             return prev - 1;
@@ -220,15 +227,11 @@ export default function MultiplayerGamePage() {
                     }, 1000);
                 } else {
                      setTimeLeft(0);
-                     // Time was already up when question loaded
                 }
             } else {
-                 // Start time not yet available (Firebase serverTimestamp might still be resolving)
-                 // Set to max duration, will adjust when startTime updates in roomData
                  setTimeLeft(QUESTION_DURATION); 
             }
         } else {
-            // Not in game or no question, ensure timer is stopped/reset
             setTimeLeft(QUESTION_DURATION);
         }
 
@@ -239,10 +242,8 @@ export default function MultiplayerGamePage() {
                 timerIntervalRef.current = null;
             }
         };
-        // Rerun when question index or start time changes (added roomData)
     }, [roomData, roomData?.currentQuestionIndex, roomData?.currentQuestionStartTime, roomData?.status]);
 
-    // Main Effect for Firebase Listener
     useEffect(() => {
         if (!roomCode) {
             setError('Room code is missing.');
@@ -289,7 +290,6 @@ export default function MultiplayerGamePage() {
                 // Redirect or handle finished status
                 if (data.status === 'finished') {
                     console.log('Game finished according to Firebase data.');
-                    // Clear timer if game finishes while it's running
                     if (timerIntervalRef.current) {
                        clearInterval(timerIntervalRef.current);
                        timerIntervalRef.current = null;
@@ -316,19 +316,24 @@ export default function MultiplayerGamePage() {
 
     }, [roomCode, router, sessionStatus, userId]); // Dependencies
 
-    // --- Game Logic Functions ---
     const handleAnswerSubmit = async (answer: string) => {
         if (!userId || !roomCode || roomData?.currentQuestionIndex === undefined || isSubmitting) {
             console.error("Cannot submit answer: Missing data or already submitted.");
             return;
         }
         setIsSubmitting(true);
-        setSelectedAnswer(answer); // Show immediate feedback
+        setSelectedAnswer(answer);
+
+        // Pause audio when answer is submitted - Added
+        if (audioRef.current && !audioRef.current.paused) {
+           audioRef.current.pause();
+           setIsPlaying(false);
+        }
 
         const answerPath = `rooms/${roomCode}/answers/${roomData.currentQuestionIndex}/${userId}`;
         const answerData = {
             answer: answer,
-            timestamp: serverTimestamp() // Record when the answer was submitted
+            timestamp: serverTimestamp()
         };
 
         try {
@@ -336,14 +341,54 @@ export default function MultiplayerGamePage() {
             console.log(`Player ${userId} submitted answer: ${answer} for question ${roomData.currentQuestionIndex}`);
         } catch (err) {
             console.error("Error submitting answer:", err);
-            alert("Failed to submit answer.");
-            setIsSubmitting(false); // Allow retry on error
+            toast.error("Failed to submit answer.");
+            setIsSubmitting(false);
             setSelectedAnswer(null);
         }
     };
-    // --- End Game Logic Functions ---
 
-    // --- Helper for Progress Bar Color ---
+    // --- Audio Player Logic - Added ---
+    const togglePlayPause = () => {
+      if (!audioRef.current) return;
+      if (isPlaying) {
+        audioRef.current.pause();
+      } else {
+        audioRef.current.play().catch(err => {
+           console.warn("Audio autoplay failed:", err);
+           setIsPlaying(false); 
+        });
+      }
+      setIsPlaying(!isPlaying);
+    };
+
+    const handleTimeUpdate = () => {
+      if (audioRef.current) {
+        setCurrentTime(audioRef.current.currentTime);
+      }
+    };
+
+    const handleLoadedMetadata = () => {
+      if (audioRef.current) {
+        setDuration(audioRef.current.duration);
+      }
+    };
+
+    const handleAudioEnded = () => {
+      setIsPlaying(false);
+      setCurrentTime(0);
+      if(audioRef.current) audioRef.current.currentTime = 0;
+    };
+
+    const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
+      if (!audioRef.current || !duration) return;
+      const progressBar = e.currentTarget;
+      const clickPosition = e.nativeEvent.offsetX;
+      const barWidth = progressBar.offsetWidth;
+      const newTime = (clickPosition / barWidth) * duration;
+      audioRef.current.currentTime = newTime;
+      setCurrentTime(newTime);
+    };
+
     const getProgressColor = () => {
         const percentage = (timeLeft / QUESTION_DURATION) * 100;
         if (percentage > 66) return 'bg-green-500';
@@ -351,7 +396,6 @@ export default function MultiplayerGamePage() {
         if (percentage > 10) return 'bg-orange-500';
         return 'bg-red-600';
     }
-    // --- End Helper ---
 
     if (loading || sessionStatus === 'loading') {
         return (
@@ -401,64 +445,50 @@ export default function MultiplayerGamePage() {
         );
     }
 
-    // --- Game Finished State --- >
     if (roomData.status === 'finished') {
-        // Oyuncuları puana göre sırala
         const sortedPlayers = Object.entries(roomData.players || {})
             .sort(([, a], [, b]) => b.score - a.score);
-        
-        // En yüksek skoru bul
         const highestScore = sortedPlayers[0]?.[1].score;
 
         return (
-            <div className="min-h-screen bg-gradient-to-b from-purple-900 to-indigo-900 flex flex-col items-center justify-center px-4">
-                <div className="w-full max-w-lg bg-purple-800/30 backdrop-blur-sm p-8 rounded-2xl border border-purple-400/20 shadow-lg shadow-purple-500/20 text-center">
-                    <h2 className="text-3xl font-bold mb-4 text-white tracking-wide animate-pulse flex items-center justify-center gap-2">
-                        <span className="animate-bounce">🎬</span>
-                        Game Finished! 
-                        <span className="animate-bounce">🎮</span>
-                    </h2>
-                    <p className="text-xl mb-2 text-purple-200">Final Scores:</p>
-                    <ul className="space-y-3 mb-8">
-                        {sortedPlayers.map(([id, player]) => (
-                            <li 
-                                key={id} 
-                                className={`flex justify-between items-center py-2 px-4 rounded-lg transition-all duration-200 hover:scale-105 ${
-                                    player.score === highestScore 
-                                        ? 'bg-green-600/30 hover:bg-green-600/40' 
-                                        : 'bg-orange-600/30 hover:bg-orange-600/40'
-                                }`}
-                            >
-                                <span className="text-white font-medium flex items-center gap-2">
-                                    {player.name}
-                                    {player.score === highestScore && (
-                                        <span className="animate-bounce">👑</span>
-                                    )}
-                                </span>
-                                <span className={`font-bold ${
-                                    player.score === highestScore 
-                                        ? 'text-green-400' 
-                                        : 'text-orange-400'
-                                }`}>
-                                    {player.score} points
-                                </span>
-                            </li>
-                        ))}
-                    </ul>
-                    <Button 
-                        variant="default" 
-                        size="lg" 
-                        onClick={() => router.push('/dashboard')}
-                        className="w-full bg-purple-600 hover:bg-purple-700 transition-all duration-200 hover:scale-105 active:scale-95"
+            <div className="min-h-screen bg-gradient-to-b from-purple-900 to-indigo-900 flex flex-col items-center justify-center p-4">
+              <div className="bg-purple-800/50 backdrop-blur-md p-8 rounded-3xl border border-purple-400/30 shadow-xl shadow-purple-500/30 text-center max-w-lg w-full animate-in fade-in duration-500">
+                <h2 className="text-3xl font-bold mb-4 text-white tracking-tight flex items-center justify-center gap-2">
+                  <span className="animate-bounce">🏆</span>
+                  Game Finished!
+                </h2>
+                <p className="text-lg mb-4 text-purple-200">Final Scores:</p>
+                <ul className="space-y-3 mb-8 max-h-60 overflow-y-auto px-2">
+                  {sortedPlayers.map(([id, player]) => (
+                    <li 
+                      key={id} 
+                      className={`flex justify-between items-center py-2.5 px-4 rounded-lg transition-all duration-200 ${ player.score === highestScore ? 'bg-green-600/30' : 'bg-orange-600/30' }`}
                     >
-                        Back to Dashboard
-                    </Button>
-                </div>
+                      <span className="text-white font-medium flex items-center gap-2">
+                        {player.name}
+                        {player.score === highestScore && (
+                          <span className="animate-bounce">👑</span>
+                        )}
+                      </span>
+                      <span className={`font-bold ${ player.score === highestScore ? 'text-green-400' : 'text-orange-400' }`}>
+                        {player.score} pts
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+                <Button 
+                  variant="default" 
+                  size="lg" 
+                  onClick={() => router.push('/dashboard')}
+                  className="w-full bg-purple-600 hover:bg-purple-500 text-lg transition-all duration-300 hover:shadow-lg hover:scale-105 active:scale-95"
+                >
+                  Back to Dashboard
+                </Button>
+              </div>
             </div>
         );
     }
 
-    // --- Waiting for Question State --- >
     if (roomData.status === 'in-game' && !currentQuestion) {
         return (
             <div className="min-h-screen bg-gradient-to-b from-black via-purple-950 to-black flex items-center justify-center">
@@ -476,7 +506,6 @@ export default function MultiplayerGamePage() {
         );
     }
 
-    // --- Fallback/Error State --- >
     if (!currentQuestion) {
         return (
             <div className="min-h-screen bg-gradient-to-b from-black via-purple-950 to-black flex items-center justify-center">
@@ -488,89 +517,135 @@ export default function MultiplayerGamePage() {
     }
 
     const questionIndex = roomData.currentQuestionIndex;
-
-    // Determine if the current player has answered this question
     const playerAnswered = userId && questionIndex !== undefined && roomData.answers?.[questionIndex]?.[userId];
 
     return (
-        <div className="min-h-screen bg-gradient-to-b from-purple-900 to-indigo-900 flex flex-col items-center px-4 py-8">
-          <div className="w-full max-w-4xl bg-purple-800/30 backdrop-blur-sm p-8 rounded-2xl border border-purple-400/20 shadow-lg shadow-purple-500/20">
+        <div className="min-h-screen bg-gradient-to-b from-purple-900 to-indigo-900 flex flex-col items-center justify-center px-4 py-6">
+          <div className="w-full max-w-3xl bg-purple-800/40 backdrop-blur-md p-6 rounded-2xl border border-purple-400/20 shadow-xl shadow-purple-500/20 relative animate-in fade-in duration-300">
+
+            {/* Header Section: Timer, Question Count, Type */}
+            <div className="grid grid-cols-3 items-center gap-4 mb-4">
+              {/* Source Type (Left Aligned) */}
+              <div className="flex items-center justify-start gap-2 text-purple-200 text-sm">
+                {currentQuestion.source === 'film' ? <Film size={16} /> : <Gamepad2 size={16} />}
+                <span className="truncate">{currentQuestion.source === 'film' ? 'Movie Question' : 'Game Question'}</span>
+              </div>
+              {/* Question Count (Center Aligned) */}
+              <div className="text-white font-medium text-lg text-center">
+                Question {roomData.currentQuestionIndex !== undefined ? roomData.currentQuestionIndex + 1 : '-'} / {roomData.questions?.length ?? '-'}
+              </div>
+              {/* Timer (Right Aligned) */}
+              <div className="flex items-center justify-end gap-1 text-yellow-400 font-semibold text-sm">
+                 <Timer size={16} />
+                 <span>{timeLeft}s</span>
+              </div>
+            </div>
+            
             {/* Timer Bar */}
-            <div className="mb-6 relative h-4 w-full bg-purple-900/50 rounded-full overflow-hidden">
+            <div className="mb-6 relative h-2 w-full bg-purple-900/60 rounded-full overflow-hidden">
               <div
-                className={`absolute left-0 top-0 h-full transition-all duration-500 ease-linear ${getProgressColor()}`}
+                className={`absolute left-0 top-0 h-full rounded-full transition-all duration-500 ease-linear ${getProgressColor()}`}
                 style={{ width: `${(timeLeft / QUESTION_DURATION) * 100}%` }}
               />
-              <span className="absolute inset-0 flex items-center justify-center text-xs font-bold text-white mix-blend-difference">
-                {timeLeft}s
-              </span>
             </div>
 
-            <h2 className="text-center text-2xl font-bold mb-2 text-white tracking-wide flex items-center justify-center gap-2">
-              <span className="animate-pulse">🎬</span>
-              Question {roomData.currentQuestionIndex !== undefined ? roomData.currentQuestionIndex + 1 : '-'} / {roomData.questions?.length ?? '-'}
-              <span className="animate-pulse">🎮</span>
-            </h2>
-            <p className="text-center text-lg text-purple-200 mb-6">
-              {currentQuestion.source === 'film' ? '🎬 Movie Question' : '🎮 Game Question'}
-            </p>
-
-            {/* Media Area - Centered */}
-            <div className="mb-6">
+            {/* Media Area (Image or Audio) */}
+            <div className="mb-5 min-h-[160px] flex flex-col items-center justify-center">
               {currentQuestion.media?.image && (
-                <div className="relative flex justify-center items-center h-96">
+                <div className="relative w-full max-w-lg h-40 animate-in fade-in duration-300">
                   <NextImage 
                     src={currentQuestion.media.image} 
                     alt="scene" 
                     layout="fill" 
                     objectFit="contain" 
-                    className="rounded-lg border border-purple-400/20 shadow-lg shadow-purple-500/20" 
+                    className="rounded-lg" 
+                    priority={questionIndex === 0} // Prioritize first image
                   />
                 </div>
               )}
               
+              {/* Audio Display with Custom Controls - Added */}
               {currentQuestion.media?.voice_record && (
-                <div className="flex flex-col items-center justify-center gap-2">
-                  {currentQuestion.media.quote && (
-                    <p className="text-center italic text-purple-200 mb-2">&quot;{currentQuestion.media.quote}&quot;</p>
-                  )}
-                  <div className="w-full max-w-md">
+                 <div className="w-full max-w-md flex flex-col items-center gap-3 animate-in fade-in duration-300">
+                    {/* Hidden Actual Audio Element */}
                     <audio
+                      ref={audioRef}
                       key={currentQuestion.media.voice_record}
-                      controls
-                      className="w-full"
+                      src={currentQuestion.media.voice_record}
+                      onTimeUpdate={handleTimeUpdate}
+                      onLoadedMetadata={handleLoadedMetadata}
+                      onEnded={handleAudioEnded}
+                      preload="metadata"
+                      autoPlay // Attempt autoplay
+                      hidden
                     >
-                      <source src={currentQuestion.media.voice_record} type="audio/mp3" />
                       Your browser does not support the audio element.
                     </audio>
-                  </div>
-                </div>
+                    
+                    {/* Optional Quote Text */}
+                    {currentQuestion.media.quote && (
+                       <p className="text-center italic text-sm text-purple-200 mb-1">&quot;{currentQuestion.media.quote}&quot;</p>
+                    )}
+
+                    {/* Custom Controls */}
+                    <div className="flex items-center gap-4 w-full bg-purple-900/30 p-3 rounded-lg">
+                      <Button 
+                        onClick={togglePlayPause} 
+                        variant="ghost" 
+                        size="icon" 
+                        className="text-purple-200 hover:text-white hover:bg-purple-700/50 rounded-full"
+                      >
+                         {isPlaying ? <Pause size={20} /> : <Play size={20} />}
+                      </Button>
+                      <div className="flex-grow flex items-center gap-2">
+                        <span className="text-xs text-purple-300 font-mono w-10 text-right">{formatTime(currentTime)}</span>
+                        <div 
+                          className="relative w-full h-2 bg-purple-900/70 rounded-full cursor-pointer group"
+                          onClick={handleProgressClick}
+                        >
+                          <div 
+                            className="absolute top-0 left-0 h-full bg-purple-400 rounded-full"
+                            style={{ width: `${duration ? (currentTime / duration) * 100 : 0}%` }}
+                          />
+                          <div 
+                            className="absolute top-1/2 left-0 w-3 h-3 bg-white rounded-full -translate-y-1/2 shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
+                            style={{ left: `calc(${duration ? (currentTime / duration) * 100 : 0}% - 6px)` }}
+                          />
+                        </div>
+                        <span className="text-xs text-purple-300 font-mono w-10">{formatTime(duration)}</span>
+                      </div>
+                    </div>
+                 </div>
               )}
             </div>
 
-            <p className="text-center mb-8 text-xl font-medium text-white">{currentQuestion.questionText}</p>
+            {/* Question Text */}
+            <p className="text-center mb-6 text-xl font-semibold text-white min-h-[56px]">{currentQuestion.questionText}</p>
 
             {/* Options Grid */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {currentQuestion.options.map((opt) => {
                 const isCorrect = opt === currentQuestion.correctAnswer;
                 const isSelected = selectedAnswer === opt;
-                let buttonStyle = "bg-purple-700/50 hover:bg-purple-600/50 text-white";
-
-                if (playerAnswered || timeLeft <= 0) {
-                  buttonStyle = isCorrect
-                    ? "bg-green-600 text-white"
-                    : isSelected
-                    ? "bg-red-600 text-white"
-                    : "bg-purple-900/50 text-purple-300";
+                
+                // Determine button styles based on state (answered, time up, selected, correct)
+                let buttonClasses = "bg-purple-700/60 hover:bg-purple-600/60 text-white border-purple-500/30 focus:ring-purple-400"; // Default
+                if (playerAnswered || timeLeft <= 0) { // If player answered or time is up, reveal correct/incorrect
+                    buttonClasses = isCorrect
+                      ? "bg-green-600/80 text-white border-green-500/50 focus:ring-green-400 scale-105 shadow-lg" // Correct answer style
+                      : isSelected
+                      ? "bg-red-600/80 text-white border-red-500/50 focus:ring-red-400" // Player selected this wrong answer
+                      : "bg-purple-900/50 text-purple-300 border-purple-700/30 opacity-70 cursor-not-allowed"; // Other wrong answers
+                } else if (isSelected) { // Player selected this option before reveal
+                     buttonClasses = "bg-purple-500 text-white border-purple-400/50 ring-2 ring-purple-400 ring-offset-2 ring-offset-purple-900"; // Style for selected before reveal
                 }
 
                 return (
                   <button
                     key={opt}
                     onClick={() => handleAnswerSubmit(opt)}
-                    className={`py-4 px-6 rounded-xl text-center text-lg font-semibold w-full h-full ${buttonStyle} transition-all duration-200 hover:scale-105 active:scale-95`}
-                    disabled={!!playerAnswered || timeLeft <= 0}
+                    className={`min-h-[60px] flex items-center justify-center p-3 rounded-lg text-center text-base font-medium w-full border ${buttonClasses} transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-purple-900 disabled:opacity-50 disabled:cursor-not-allowed disabled:scale-100 disabled:shadow-none`}
+                    disabled={!!playerAnswered || timeLeft <= 0 || isSubmitting} // Disable if answered, time up, or currently submitting
                   >
                     {opt}
                   </button>
@@ -578,11 +653,16 @@ export default function MultiplayerGamePage() {
               })}
             </div>
 
+            {/* Feedback Text */}
             {playerAnswered && (
-              <p className="text-center mt-6 text-green-400 font-semibold">Your answer is submitted! Waiting for others...</p>
+              <p className="text-center mt-4 text-green-400 font-semibold animate-in fade-in duration-500">
+                Your answer submitted! Waiting for others...
+              </p>
             )}
             {timeLeft <= 0 && !playerAnswered && (
-              <p className="text-center mt-6 text-red-400 font-semibold">Time&apos;s up!</p>
+              <p className="text-center mt-4 text-red-400 font-semibold animate-in fade-in duration-500">
+                Time&apos;s up!
+              </p>
             )}
           </div>
         </div>
