@@ -48,12 +48,13 @@ export function LoginForm({
       const success = await signIn(email, password)
       
       if (success) {
-        router.push("/dashboard")
+        router.push("/home")
       } else {
         setError("Failed to login. Please check your credentials.")
       }
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    } catch (_) {
+    } catch (error) {
+      console.error("Login failed:", error)
       setError("Failed to login. Please check your credentials.")
     } finally {
       setLoading(false)

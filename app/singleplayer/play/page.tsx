@@ -153,7 +153,7 @@ export default function SingleplayerPlayPage() {
 
   const handleExitConfirm = () => {
     setShowExitDialog(false)
-    router.push('/dashboard')
+    router.push('/home')
   }
 
   const togglePlayPause = () => {
@@ -234,7 +234,7 @@ export default function SingleplayerPlayPage() {
           <Button 
             variant="default" 
             size="lg" 
-            onClick={() => router.push('/dashboard')}
+            onClick={() => router.push('/home')}
             className="w-full bg-purple-600 hover:bg-purple-500 text-lg transition-all duration-300 hover:shadow-lg hover:scale-105 active:scale-95"
           >
             Back to Menu

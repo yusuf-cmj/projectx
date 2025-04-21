@@ -11,7 +11,7 @@ export default function Page() {
 
   useEffect(() => {
     if (status === "authenticated") {
-      router.push("/dashboard");
+      router.push("/home");
     }
   }, [status, router]);
 

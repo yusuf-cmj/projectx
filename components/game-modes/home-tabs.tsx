@@ -14,7 +14,7 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs"
-import { Gamepad, Users } from "lucide-react"
+import { Gamepad, Users, Copy, Loader2 } from "lucide-react"
 import { useState } from "react"
 import SingleplayerHistory from "@/components/SingleplayerHistory" // ✅ import et
 // Add Firebase imports
@@ -22,6 +22,18 @@ import { db } from '@/lib/firebase'; // Adjust path if needed
 import { ref, set, serverTimestamp, get } from 'firebase/database';
 import { useSession } from 'next-auth/react'; // Import useSession
 // import { useAuth } from '@/context/AuthContext'; // Assuming you have an AuthContext
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { toast } from "sonner"
 
 // Function to generate a simple random room code
 function generateRoomCode(length: number = 6): string {
@@ -39,9 +51,17 @@ export default function HomeTabs() {
   const { data: session, status } = useSession(); // Get session status
   // const { user } = useAuth(); // Get current user if available
 
+  // State for Dialogs and Loading
+  const [isJoinDialogOpen, setIsJoinDialogOpen] = useState(false);
+  const [joinRoomCodeInput, setJoinRoomCodeInput] = useState("");
+  const [isJoining, setIsJoining] = useState(false);
+  const [isCreateInfoDialogOpen, setIsCreateInfoDialogOpen] = useState(false);
+  const [createdRoomCode, setCreatedRoomCode] = useState<string | null>(null);
+  const [isCreating, setIsCreating] = useState(false);
+
   // Define the function to handle room creation
   const handleCreateRoom = async () => {
-    if (status === 'loading') return; // Don't do anything if session is loading
+    if (status === 'loading' || isCreating) return;
     if (!session || !session.user) { // Check if user is logged in
       console.error("User not logged in");
       alert("You must be logged in to create a room.");
@@ -59,6 +79,7 @@ export default function HomeTabs() {
       return;
     }
 
+    setIsCreating(true);
     const roomCode = generateRoomCode();
     const roomRef = ref(db, `rooms/${roomCode}`);
 
@@ -79,37 +100,42 @@ export default function HomeTabs() {
         },
       });
       console.log(`Room created with code: ${roomCode} by user ${userId}`);
-      alert(`Room created! Code: ${roomCode}. Share this code with others.`);
-      router.push(`/multiplayer/lobby/${roomCode}`);
+      setCreatedRoomCode(roomCode); // Store code to show in dialog
+      setIsCreateInfoDialogOpen(true); // Open info dialog
+      // No automatic navigation here, user closes dialog
     } catch (error) {
       console.error('Error creating room:', error);
-      alert('Failed to create room. Please try again.');
+      toast.error('Failed to create room. Please try again.');
+    } finally {
+      setIsCreating(false);
     }
   };
 
-  // Function to handle joining a room
-  const handleJoinRoom = async () => {
-    if (status === 'loading') return;
+  // Function to open the join dialog
+  const triggerJoinRoomDialog = () => {
+    if (!session || !session.user) {
+      console.error("User not logged in");
+      alert("You must be logged in to join a room.");
+      return;
+    }
+    setJoinRoomCodeInput(""); // Clear previous input
+    setIsJoinDialogOpen(true);
+  };
+
+  // Function to handle the actual joining process (called from dialog)
+  const submitJoinRoom = async (code: string) => {
+    if (status === 'loading' || isJoining || !code) return;
     if (!session || !session.user) {
       console.error("User not logged in");
       alert("You must be logged in to join a room.");
       return;
     }
 
+    setIsJoining(true);
     const userId = session.user.id;
     const userName = session.user.name ?? session.user.email ?? 'Anonymous';
-
-    if (!userId) {
-      console.error("User ID is missing from session");
-      alert("An error occurred retrieving your user ID. Please try again.");
-      return;
-    }
-
-    const code = prompt("Enter the room code:")?.trim().toUpperCase(); // Get code, trim whitespace, make uppercase
-
-    if (!code) return; // User cancelled or entered empty code
-
-    const roomRef = ref(db, `rooms/${code}`);
+    const upperCode = code.trim().toUpperCase();
+    const roomRef = ref(db, `rooms/${upperCode}`);
 
     try {
       const snapshot = await get(roomRef);
@@ -118,28 +144,45 @@ export default function HomeTabs() {
         // Room exists, add the player
         const roomData = snapshot.val();
         if (roomData.players && roomData.players[userId]) {
-           alert("You are already in this room!"); // Optional: Check if already joined
-           router.push(`/multiplayer/lobby/${code}`);
+           toast.info("You are already in this room!");
+           setIsJoinDialogOpen(false);
+           router.push(`/multiplayer/lobby/${upperCode}`);
            return;
         }
         // Add or update player data using set to ensure all fields are present
-        const playerRef = ref(db, `rooms/${code}/players/${userId}`);
+        const playerRef = ref(db, `rooms/${upperCode}/players/${userId}`);
         await set(playerRef, {
           name: userName,
           score: 0,
           isReady: false,
         });
 
-        console.log(`User ${userId} joined room ${code}`);
-        router.push(`/multiplayer/lobby/${code}`);
+        console.log(`User ${userId} joined room ${upperCode}`);
+        setIsJoinDialogOpen(false); // Close dialog on success
+        router.push(`/multiplayer/lobby/${upperCode}`);
       } else {
         // Room does not exist
-        alert(`Room with code "${code}" not found.`);
+        toast.error(`Room with code "${upperCode}" not found.`);
       }
     } catch (error) {
       console.error('Error joining room:', error);
-      alert('Failed to join room. Please check the code and try again.');
+      toast.error('Failed to join room. Please check the code and try again.');
+    } finally {
+      setIsJoining(false);
     }
+  };
+
+  // --- Copy Room Code Logic ---
+  const copyToClipboard = (text: string | null) => {
+    if (!text) return;
+    navigator.clipboard.writeText(text)
+      .then(() => {
+        toast.success("Room code copied!");
+      })
+      .catch(err => {
+        console.error('Failed to copy text: ', err);
+        toast.error("Failed to copy code.");
+      });
   };
 
   return (
@@ -223,7 +266,7 @@ export default function HomeTabs() {
                   variant="default"
                   size="default"
                   className="w-full"
-                  onClick={handleJoinRoom}
+                  onClick={triggerJoinRoomDialog}
                 >
                   Join
                 </Button>
@@ -237,14 +280,99 @@ export default function HomeTabs() {
                   size="default"
                   className="w-full"
                   onClick={handleCreateRoom}
+                  disabled={isCreating}
                 >
-                  Create
+                  {isCreating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                  {isCreating ? "Creating..." : "Create"}
                 </Button>
               </div>
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Join Room Dialog */}
+      <Dialog open={isJoinDialogOpen} onOpenChange={setIsJoinDialogOpen}>
+        <DialogContent className="sm:max-w-[425px] bg-purple-900/80 backdrop-blur-md border-purple-400/30 text-white">
+          <DialogHeader>
+            <DialogTitle>Join Multiplayer Room</DialogTitle>
+            <DialogDescription className="text-purple-200">
+              Enter the 6-character room code shared by the host.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="room-code" className="text-right text-purple-200">
+                Code
+              </Label>
+              <Input 
+                id="room-code"
+                value={joinRoomCodeInput}
+                onChange={(e) => setJoinRoomCodeInput(e.target.value.toUpperCase())}
+                maxLength={6}
+                className="col-span-3 bg-purple-800/50 border-purple-400/40 focus:border-purple-400 focus:ring-purple-400"
+                placeholder="ABCDEF"
+                autoCapitalize="characters"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <DialogClose asChild>
+               <Button type="button" variant="secondary">Cancel</Button>
+            </DialogClose>
+            <Button 
+               type="button" 
+               onClick={() => submitJoinRoom(joinRoomCodeInput)} 
+               disabled={isJoining || joinRoomCodeInput.length !== 6}
+            >
+              {isJoining ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              {isJoining ? "Joining..." : "Join Room"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+       {/* Create Room Info Dialog */}
+       <Dialog open={isCreateInfoDialogOpen} onOpenChange={setIsCreateInfoDialogOpen}>
+        <DialogContent className="sm:max-w-md bg-purple-900/80 backdrop-blur-md border-purple-400/30 text-white">
+          <DialogHeader>
+            <DialogTitle>Room Created!</DialogTitle>
+            <DialogDescription className="text-purple-200">
+              Share this code with your friends so they can join.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex items-center space-x-2 py-4">
+            <div className="grid flex-1 gap-2">
+              <Label htmlFor="link" className="sr-only">
+                Room Code
+              </Label>
+              <Input
+                id="link"
+                defaultValue={createdRoomCode ?? ""}
+                readOnly
+                className="h-12 text-2xl font-mono tracking-widest text-center bg-purple-800/50 border-purple-400/40"
+              />
+            </div>
+            <Button type="button" size="icon" className="px-3 h-12" onClick={() => copyToClipboard(createdRoomCode)}>
+              <span className="sr-only">Copy</span>
+              <Copy className="h-5 w-5" />
+            </Button>
+          </div>
+          <DialogFooter className="sm:justify-start">
+            <DialogClose asChild>
+              <Button type="button" variant="secondary" onClick={() => router.push(`/multiplayer/lobby/${createdRoomCode}`)}>
+                Go to Lobby
+              </Button>
+            </DialogClose>
+             <DialogClose asChild>
+              <Button type="button" variant="outline">
+                Close
+              </Button>
+            </DialogClose>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
     </div>
   )
 }

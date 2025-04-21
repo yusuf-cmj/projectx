@@ -54,7 +54,7 @@ export function RegisterForm({
       const success = await signUp(name, email, password)
       
       if (success) {
-        router.push('/dashboard')
+        router.push('/home')
       } else {
         setError("Failed to create account. Email may already be in use.")
       }
