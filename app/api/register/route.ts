@@ -12,9 +12,9 @@ import { z } from "zod";
 
 // Kayıt isteği için veri şeması
 const registerSchema = z.object({
-  name: z.string().min(2, "İsim en az 2 karakter olmalıdır"),
-  email: z.string().email("Geçerli bir email adresi giriniz"),
-  password: z.string().min(8, "Şifre en az 8 karakter olmalıdır")
+  name: z.string().min(2, "Name must be at least 2 characters"),
+  email: z.string().email("Please enter a valid email address"),
+  password: z.string().min(8, "Password must be at least 8 characters")
 });
 
 export async function POST(request: NextRequest) {
@@ -25,9 +25,12 @@ export async function POST(request: NextRequest) {
     // Veri doğrulama
     const result = registerSchema.safeParse(body);
     if (!result.success) {
-      // Doğrulama hataları
+      // Log detailed validation errors
+      console.error("Validation errors:", result.error.flatten()); 
+      // Doğrulama hataları - Keep backend error message in Turkish for consistency if desired, or change it.
+      // Let's change it to English for consistency.
       return NextResponse.json(
-        { error: "Geçersiz giriş verileri", details: result.error.flatten() },
+        { error: "Invalid input data", details: result.error.flatten() }, 
         { status: 400 }
       );
     }
@@ -43,7 +46,7 @@ export async function POST(request: NextRequest) {
 
     if (existingUser) {
       return NextResponse.json(
-        { error: "Bu email adresi zaten kullanılıyor" },
+        { error: "This email address is already in use" }, 
         { status: 409 }
       );
     }
@@ -65,14 +68,15 @@ export async function POST(request: NextRequest) {
     const { password: _password, ...userWithoutPassword } = newUser;
 
     return NextResponse.json(
-      { message: "Kullanıcı başarıyla oluşturuldu", user: userWithoutPassword },
+      { message: "User created successfully", user: userWithoutPassword }, 
       { status: 201 }
     );
 
   } catch (error) {
-    console.error("Kayıt hatası:", error);
+    // Log the actual error object for better debugging
+    console.error("Registration error:", error); 
     return NextResponse.json(
-      { error: "Kullanıcı oluşturulurken bir hata oluştu" },
+      { error: "An error occurred while creating the user" }, 
       { status: 500 }
     );
   }

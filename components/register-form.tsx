@@ -15,6 +15,7 @@ import { useState } from "react"
 import { useAuth } from "@/contexts/AuthContext"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
+import { RegisterError } from "@/contexts/AuthContext"
 
 /**
  * Kayıt Formu Bileşeni
@@ -30,7 +31,10 @@ export function RegisterForm({
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
-  const [error, setError] = useState("")
+  const [generalError, setGeneralError] = useState("")
+  const [nameError, setNameError] = useState("");
+  const [emailError, setEmailError] = useState("");
+  const [passwordError, setPasswordError] = useState("");
   const [loading, setLoading] = useState(false)
   const { signUp } = useAuth()
   const router = useRouter()
@@ -42,12 +46,17 @@ export function RegisterForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
+    setGeneralError("")
+    setNameError("")
+    setEmailError("")
+    setPasswordError("")
+
     if (password !== confirmPassword) {
-      return setError("Passwords do not match")
+      setPasswordError("Passwords do not match");
+      return;
     }
 
     try {
-      setError("")
       setLoading(true)
       
       // NextAuth.js ile kayıt ve otomatik giriş
@@ -55,12 +64,21 @@ export function RegisterForm({
       
       if (success) {
         router.push('/home')
-      } else {
-        setError("Failed to create account. Email may already be in use.")
-      }
+      } 
+
     } catch (error: unknown) {
-      console.error("Registration error:", error)
-      setError("Failed to create account")
+      console.error("Registration error caught in form:", error)
+      
+      if (error instanceof RegisterError) {
+        setGeneralError(error.message || "Please check the form.");
+        setNameError(error.details.fieldErrors?.name?.join(", ") || "");
+        setEmailError(error.details.fieldErrors?.email?.join(", ") || "");
+        setPasswordError(error.details.fieldErrors?.password?.join(", ") || "");
+      } else if (error instanceof Error) {
+        setGeneralError(error.message || "Failed to create account.");
+      } else {
+        setGeneralError("An unexpected error occurred.");
+      }
     } finally {
       setLoading(false)
     }
@@ -76,14 +94,14 @@ export function RegisterForm({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {error && (
-            <div className="mb-4 text-sm text-red-400">
-              {error}
+          {generalError && (
+            <div className="mb-4 text-sm text-red-400 bg-red-900/30 p-3 rounded-md border border-red-400/50">
+              {generalError}
             </div>
           )}
           <form onSubmit={handleSubmit}>
-            <div className="flex flex-col gap-6">
-              <div className="grid gap-3">
+            <div className="flex flex-col gap-4">
+              <div className="grid gap-1">
                 <Label htmlFor="name" className="text-white">Full Name</Label>
                 <Input
                   id="name"
@@ -93,10 +111,16 @@ export function RegisterForm({
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   disabled={loading}
-                  className="bg-purple-700/50 border-purple-400/20 text-white placeholder:text-purple-300"
+                  className={cn(
+                    "bg-purple-700/50 border-purple-400/20 text-white placeholder:text-purple-300",
+                    nameError && "border-red-500 focus-visible:ring-red-500"
+                  )}
+                  aria-invalid={!!nameError}
+                  aria-describedby={nameError ? "name-error" : undefined}
                 />
+                {nameError && <p id="name-error" className="text-xs text-red-400 mt-1">{nameError}</p>}
               </div>
-              <div className="grid gap-3">
+              <div className="grid gap-1">
                 <Label htmlFor="email" className="text-white">Email</Label>
                 <Input
                   id="email"
@@ -106,10 +130,16 @@ export function RegisterForm({
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   disabled={loading}
-                  className="bg-purple-700/50 border-purple-400/20 text-white placeholder:text-purple-300"
+                  className={cn(
+                    "bg-purple-700/50 border-purple-400/20 text-white placeholder:text-purple-300",
+                    emailError && "border-red-500 focus-visible:ring-red-500"
+                  )}
+                  aria-invalid={!!emailError}
+                  aria-describedby={emailError ? "email-error" : undefined}
                 />
+                {emailError && <p id="email-error" className="text-xs text-red-400 mt-1">{emailError}</p>}
               </div>
-              <div className="grid gap-3">
+              <div className="grid gap-1">
                 <Label htmlFor="password" className="text-white">Password</Label>
                 <Input 
                   id="password" 
@@ -118,10 +148,16 @@ export function RegisterForm({
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   disabled={loading}
-                  className="bg-purple-700/50 border-purple-400/20 text-white"
+                  className={cn(
+                    "bg-purple-700/50 border-purple-400/20 text-white",
+                    passwordError && "border-red-500 focus-visible:ring-red-500"
+                  )}
+                  aria-invalid={!!passwordError}
+                  aria-describedby={passwordError ? "password-error" : undefined}
                 />
+                {passwordError && <p id="password-error" className="text-xs text-red-400 mt-1">{passwordError}</p>}
               </div>
-              <div className="grid gap-3">
+              <div className="grid gap-1">
                 <Label htmlFor="confirmPassword" className="text-white">Confirm Password</Label>
                 <Input 
                   id="confirmPassword" 
@@ -130,10 +166,14 @@ export function RegisterForm({
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   disabled={loading}
-                  className="bg-purple-700/50 border-purple-400/20 text-white"
+                  className={cn(
+                    "bg-purple-700/50 border-purple-400/20 text-white",
+                    passwordError && "border-red-500 focus-visible:ring-red-500"
+                  )}
+                  aria-invalid={!!passwordError}
                 />
               </div>
-              <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-3 mt-2">
                 <Button 
                   type="submit" 
                   className="w-full bg-purple-600 hover:bg-purple-700 transition-all duration-200 hover:scale-105 active:scale-95"

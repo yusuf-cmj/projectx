@@ -28,6 +28,30 @@ interface AuthContextType {
 // Context oluşturma
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Define a type for the field errors from Zod
+type FieldErrors = {
+  [key: string]: string[] | undefined;
+};
+
+// Define a type for the error details from the API
+interface ErrorDetails {
+  fieldErrors?: FieldErrors;
+  formErrors?: string[];
+}
+
+// Define a custom error class to hold detailed registration errors
+export class RegisterError extends Error {
+  details: ErrorDetails;
+
+  constructor(message: string, details: ErrorDetails) {
+    super(message);
+    this.name = 'RegisterError';
+    this.details = details;
+    // Set the prototype explicitly for correct instanceof checks
+    Object.setPrototypeOf(this, RegisterError.prototype);
+  }
+}
+
 // Provider component
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { data, status } = useSession();
@@ -58,7 +82,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
    * @param name Kullanıcı adı
    * @param email Kullanıcı email adresi
    * @param password Kullanıcı şifresi
-   * @returns Kayıt başarılı ise true, değilse false
+   * @returns Kayıt başarılı ise true
+   * @throws {RegisterError} If validation fails with details.
+   * @throws {Error} If registration fails for other reasons.
    */
   const signUp = async (name: string, email: string, password: string): Promise<boolean> => {
     try {
@@ -71,16 +97,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        console.error("Kayıt hatası:", error);
-        return false;
+        const errorBody = await response.json();
+        console.error("API Kayıt hatası:", errorBody);
+
+        // Check if the error response contains Zod validation details
+        if (errorBody.details && errorBody.details.fieldErrors) {
+          throw new RegisterError(errorBody.error || "Validation failed", errorBody.details);
+        } else {
+          // Throw a general error for other issues (like email conflict)
+          throw new Error(errorBody.error || `Request failed with status ${response.status}`);
+        }
       }
 
       // Kayıt başarılı ise otomatik giriş yap
       return await signIn(email, password);
     } catch (error) {
-      console.error("Kayıt hatası:", error);
-      return false;
+      // Re-throw the error if it's one we created, otherwise log and throw a generic one
+      if (error instanceof RegisterError || (error instanceof Error && error.message !== 'Failed to fetch')) {
+        throw error; 
+      } else {
+        console.error("Unexpected Registration error:", error);
+        throw new Error("An unexpected error occurred during registration.");
+      }
     }
   };
 
