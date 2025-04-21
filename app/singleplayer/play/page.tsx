@@ -42,7 +42,7 @@ export default function SingleplayerPlayPage() {
   const [questionIndex, setQuestionIndex] = useState(1)
   const [selectedOption, setSelectedOption] = useState<string | null>(null)
   const [showNext, setShowNext] = useState(false)
-  const [timeLeft, setTimeLeft] = useState(30)
+  const [timeLeft, setTimeLeft] = useState(30.0)
   const [score, setScore] = useState(0)
   const [showResult, setShowResult] = useState(false)
   const [showExitDialog, setShowExitDialog] = useState(false)
@@ -52,6 +52,8 @@ export default function SingleplayerPlayPage() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [isTransitioning, setIsTransitioning] = useState(false); // Yeni eklendi
+
 
   const saveScore = useCallback(async (finalScore: number) => {
     if (!session?.user?.id) {
@@ -108,17 +110,20 @@ export default function SingleplayerPlayPage() {
 
   useEffect(() => {
     if (selectedOption || timeLeft <= 0) return
-    const timer = setInterval(() => {
+  
+    const interval = setInterval(() => {
       setTimeLeft((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer)
+        const next = +(prev - 0.1).toFixed(1) // ✅ 100ms'de 0.1 azalt
+        if (next <= 0) {
+          clearInterval(interval)
           setShowNext(true)
+          return 0
         }
-        return prev - 1
+        return next
       })
-    }, 1000)
-
-    return () => clearInterval(timer)
+    }, 100)
+  
+    return () => clearInterval(interval)
   }, [selectedOption, timeLeft])
 
   const handleOptionClick = (option: string) => {
@@ -138,12 +143,21 @@ export default function SingleplayerPlayPage() {
   }
 
   const handleNext = () => {
+    if (isTransitioning) return; // Eğer geçiş zaten yapılıyorsa tıklamayı engelle
+    setIsTransitioning(true);    // geçiş yapıldığını işaretle
+  
     if (questionIndex === 5) {
       setShowResult(true)
     } else {
       setQuestionIndex(prev => prev + 1)
     }
+  
+    // Geçiş işlemi tamamlandıktan kısa bir süre sonra tekrar tıklamaya izin ver
+    setTimeout(() => {
+      setIsTransitioning(false)
+    }, 3000) 
   }
+  
 
   useEffect(() => {
     if (showResult) {
@@ -229,7 +243,7 @@ export default function SingleplayerPlayPage() {
           </h2>
           <p className="text-lg mb-4 text-purple-200">Your Final Score:</p>
           <p className="text-6xl font-bold text-yellow-400 mb-8 animate-pulse">
-            {score}
+            {score.toFixed(1)}
           </p>
           <Button 
             variant="default" 
