@@ -25,7 +25,7 @@ export default function Page() {
       {/* Header */}
       <header className="flex h-20 items-center justify-between border-b border-purple-400/20 px-6 bg-purple-800/30 backdrop-blur-sm">
         <h1 className="text-3xl font-bold text-white tracking-wide animate-pulse">
-          RepliQuote<span className="text-yellow-400">!</span>
+          RepliQuote<span className="text-yellow-400">"</span>
         </h1>
         <NavUser user={userData} />
       </header>

@@ -51,41 +51,39 @@ export function NavUser({
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <div className="flex items-center gap-2 cursor-pointer">
+          <div className="flex items-center gap-3 cursor-pointer bg-purple-700/40 px-3 py-1.5 rounded-full text-white hover:bg-purple-700/60 transition">
             <Avatar className="h-8 w-8">
               <AvatarImage src={user.avatar} alt={user.name} />
-              <AvatarFallback>{user.name.slice(0, 2).toUpperCase()}</AvatarFallback>
+              <AvatarFallback className="bg-purple-500/30 text-purple-100 font-semibold">
+                {user.name.slice(0, 2).toUpperCase()}
+              </AvatarFallback>
             </Avatar>
-            <div className="flex flex-col text-sm leading-tight">
-              <span className="font-medium">{user.name}</span>
-              <span className="text-xs text-muted-foreground">{user.email}</span>
-            </div>
+            <span className="font-semibold text-sm truncate max-w-[120px]">{user.name}</span>
           </div>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-56 rounded-lg">
-          <DropdownMenuLabel>
-            <div className="flex items-center gap-2 text-sm">
-              <Avatar className="h-8 w-8">
-                <AvatarImage src={user.avatar} alt={user.name} />
-                <AvatarFallback>{user.name.slice(0, 2).toUpperCase()}</AvatarFallback>
-              </Avatar>
-              <div className="flex flex-col">
-                <span className="font-medium">{user.name}</span>
-                <span className="text-xs text-muted-foreground">{user.email}</span>
-              </div>
-            </div>
-          </DropdownMenuLabel>
-          <DropdownMenuSeparator />
+        <DropdownMenuContent
+          align="end"
+          className="w-52 mt-2 rounded-xl border border-purple-400/30 bg-purple-900 text-white backdrop-blur-md shadow-lg"
+        >
+          <DropdownMenuLabel className="text-purple-200">Account</DropdownMenuLabel>
+          <DropdownMenuSeparator className="bg-purple-500/20" />
           <DropdownMenuGroup>
-            <DropdownMenuItem onClick={() => setIsPasswordModalOpen(true)}>
-              <Lock className="mr-2 h-4 w-4" />
-              Change Password
+            <DropdownMenuItem
+              onClick={() => setIsPasswordModalOpen(true)}
+              className="hover:bg-purple-800 focus:bg-purple-700 transition"
+            >
+              <Lock className="mr-2 h-4 w-4 text-purple-300" />
+              <span>Change Password</span>
             </DropdownMenuItem>
           </DropdownMenuGroup>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={handleSignOut} disabled={isLoggingOut}>
-            <LogOut className="mr-2 h-4 w-4" />
-            {isLoggingOut ? "Logging out..." : "Log out"}
+          <DropdownMenuSeparator className="bg-purple-500/20" />
+          <DropdownMenuItem
+            onClick={handleSignOut}
+            disabled={isLoggingOut}
+            className="hover:bg-purple-800 focus:bg-purple-700 transition"
+          >
+            <LogOut className="mr-2 h-4 w-4 text-purple-300" />
+            <span>{isLoggingOut ? "Logging out..." : "Log out"}</span>
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
