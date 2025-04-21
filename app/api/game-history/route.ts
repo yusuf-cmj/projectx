@@ -4,14 +4,14 @@ import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 
 export async function GET(req: NextRequest) {
-  const session = await getServerSession({ req, ...authOptions })
+  const session = await getServerSession(authOptions)
 
-  if (!session?.user?.email) {
-    return NextResponse.json([], { status: 200 })
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
   const data = await prisma.gameHistory.findMany({
-    where: { userId: session.user.email },
+    where: { userId: session.user.id },
     orderBy: { playedAt: "desc" },
   })
 
@@ -19,9 +19,9 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const session = await getServerSession({ req, ...authOptions })
+  const session = await getServerSession(authOptions)
 
-  if (!session?.user?.email) {
+  if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
@@ -34,9 +34,8 @@ export async function POST(req: NextRequest) {
 
   const created = await prisma.gameHistory.create({
     data: {
-      userId: session.user.email,
+      userId: session.user.id,
       score,
-      playedAt: new Date(),
     },
   })
 

@@ -6,6 +6,8 @@ import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogTrigger, DialogTitle } from '@/components/ui/dialog'
 import { X } from 'lucide-react'
+import { useSession } from 'next-auth/react'
+import { toast } from "sonner"
 
 interface Question {
   questionText: string
@@ -30,6 +32,29 @@ export default function SingleplayerPlayPage() {
   const [score, setScore] = useState(0)
   const [showResult, setShowResult] = useState(false)
   const [showExitDialog, setShowExitDialog] = useState(false)
+  const { data: session } = useSession()
+
+  const saveScore = async (finalScore: number) => {
+    if (!session?.user?.id) {
+      console.error("Cannot save score: User not logged in.");
+      return; 
+    }
+    try {
+      const response = await fetch("/api/game-history", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ score: finalScore }),
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to save score");
+      }
+      console.log("Game score saved successfully.");
+    } catch (error) {
+      console.error("Error saving game score:", error);
+      toast.error(error instanceof Error ? error.message : "Could not save score");
+    }
+  };
 
   useEffect(() => {
     const loadQuestion = async () => {
@@ -80,6 +105,12 @@ export default function SingleplayerPlayPage() {
       setQuestionIndex(prev => prev + 1)
     }
   }
+
+  useEffect(() => {
+    if (showResult) {
+      saveScore(score);
+    }
+  }, [showResult, score]);
 
   const handleExitConfirm = () => {
     setShowExitDialog(false)
@@ -137,7 +168,6 @@ export default function SingleplayerPlayPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-purple-900 to-indigo-900 flex flex-col items-center px-4 py-8">
       <div className="w-full max-w-4xl bg-purple-800/30 backdrop-blur-sm pt-6 px-8 pb-8 rounded-2xl border border-purple-400/20 shadow-lg shadow-purple-500/20 relative">
-        {/* Çıkış butonu ve dialog */}
         <div className="absolute top-4 right-4">
           <Dialog open={showExitDialog} onOpenChange={setShowExitDialog}>
             <DialogTrigger asChild>

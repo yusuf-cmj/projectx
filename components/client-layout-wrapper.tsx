@@ -2,20 +2,25 @@
 
 import { usePathname } from "next/navigation"
 import { AuthProviderWrapper } from "@/contexts/AuthContext"
+import { SessionProvider } from "next-auth/react"
 
 export default function ClientLayoutWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() || ""
   const isGameScreen = pathname.startsWith("/singleplayer/play")
 
-  if (isGameScreen) {
-    // 🎮 Oyun ekranı için sade yapı
-    return <>{children}</>
-  }
-
-  // 🌐 Normal sayfalar için Auth sarmalayıcı
   return (
-    <AuthProviderWrapper>
-      {children}
-    </AuthProviderWrapper>
+    <SessionProvider>
+      {
+        isGameScreen ? (
+          // 🎮 Oyun ekranı için sade yapı
+          <>{children}</>
+        ) : (
+          // 🌐 Normal sayfalar için Auth sarmalayıcı
+          <AuthProviderWrapper>
+            {children}
+          </AuthProviderWrapper>
+        )
+      }
+    </SessionProvider>
   )
 }
