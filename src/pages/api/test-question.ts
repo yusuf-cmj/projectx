@@ -16,7 +16,7 @@ export default async function handler(
       if (!isNaN(parsedType)) {
         type = parsedType;
       }
-    } catch (e) {
+    } catch {
       // Ignore parsing errors, use default
       console.warn("Could not parse 'type' query parameter:", typeParam)
     }

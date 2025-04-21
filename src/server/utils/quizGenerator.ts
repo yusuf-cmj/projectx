@@ -1,4 +1,4 @@
-import { PrismaClient, FilmQuote, GameQuote } from '@prisma/client';
+import { PrismaClient, FilmQuote, GameQuote, Prisma } from '@prisma/client';
 import _ from 'lodash'; // Using lodash for shuffling
 
 const prisma = new PrismaClient();
@@ -17,56 +17,74 @@ interface QuestionFormat {
 }
 
 // Helper function to get N distinct random items
-async function getRandomDistinct<T extends { id: string }, K extends keyof T>(
+// Removed complex generics, handling models explicitly inside
+async function getRandomDistinct(
   model: 'filmQuote' | 'gameQuote',
-  field: K,
+  field: keyof FilmQuote | keyof GameQuote, // Field must be a valid key of either model
   count: number,
   excludeId?: string,
-  excludeValue?: T[K] | null
+  excludeValue?: string | null // Assuming the fields we query are strings
 ): Promise<string[]> {
-  console.log(`\n--- [getRandomDistinct V4] Attempting to find ${count} distinct '${String(field)}' values ---`);
+  console.log(`\n--- [getRandomDistinct V5] Attempting to find ${count} distinct '${String(field)}' values ---`);
   console.log(`--- Excluding ID: ${excludeId}, Filtering Value post-fetch: ${excludeValue} ---`);
 
-  // Ultra-Simplified DB Query: Only exclude the ID. All other filtering happens in JS.
-  const whereCondition: any = {
-    id: { not: excludeId },
-  };
+  // Base where condition
+  const whereCondition: { id?: { not?: string } } = {};
+  if (excludeId) {
+    whereCondition.id = { not: excludeId };
+  }
 
-  console.log("--- [getRandomDistinct V4] Using DB Where Condition: ---");
+  console.log("--- [getRandomDistinct V5] Using DB Where Condition: ---");
   console.dir(whereCondition, { depth: null });
   console.log("-------------------------------------------------------");
 
   try {
-    // Fetch all potential candidates (matching the dynamic field type implicitly)
-    const allCandidates = await prisma[model].findMany({
-      where: whereCondition,
-      select: { [field]: true }, // Select only the field we care about
-    });
+    // Define type for the result of findMany with select
+    type Candidate = { [key in typeof field]: string | null };
+    let allCandidates: Candidate[] = []; // Initialize with correct type
 
-    console.log("--- [getRandomDistinct V4] Fetched ALL Candidates (Before JS filtering): ---");
-    console.dir(allCandidates.map(item => item[field]), { depth: null }); // Log just the values for clarity
+    // Fetch candidates based on the model using explicit calls
+    if (model === 'filmQuote') {
+        // Prisma returns Array<{ [field]: string | null }> here
+        allCandidates = await prisma.filmQuote.findMany({
+            where: whereCondition as Prisma.FilmQuoteWhereInput,
+            select: { [field]: true } as Prisma.FilmQuoteSelect,
+        }) as unknown as Candidate[]; // Use type assertion workaround
+    } else { // model === 'gameQuote'
+        // Prisma returns Array<{ [field]: string | null }> here
+        allCandidates = await prisma.gameQuote.findMany({
+            where: whereCondition as Prisma.GameQuoteWhereInput,
+            select: { [field]: true } as Prisma.GameQuoteSelect,
+        }) as unknown as Candidate[]; // Use type assertion workaround
+    }
+
+    console.log("--- [getRandomDistinct V5] Fetched ALL Candidates (Before JS filtering): ---");
+    // Explicitly type 'item' according to the actual fetched structure
+    console.dir(allCandidates.map((item: Candidate) => item[field]), { depth: null });
     console.log("-----------------------------------------------------------------------------");
 
-    // Filter in JavaScript
+    // Filter in JavaScript with explicit types
     const filteredValues = allCandidates
-      .map((item: any) => item[field] as string | null | undefined) // Extract the value
-      .filter(value => value !== null && value !== undefined && value !== '') // Filter out null, undefined, empty
-      .filter(value => value !== excludeValue); // Filter out the specific excluded value
+      .map((item: Candidate) => item[field]) // Extract the value
+      .filter((value: string | null | undefined): value is string => // Type guard to filter non-strings
+          value !== null && value !== undefined && value !== ''
+      )
+      .filter((value: string) => value !== excludeValue); // Filter out the specific excluded value
 
     // Get distinct values
-    const distinctValues = [...new Set(filteredValues)] as string[];
+    const distinctValues: string[] = [...new Set(filteredValues)];
 
-    console.log("--- [getRandomDistinct V4] Values After ALL JS Filtering & Distinct: ---");
+    console.log("--- [getRandomDistinct V5] Values After ALL JS Filtering & Distinct: ---");
     console.dir(distinctValues, { depth: null });
     console.log("---------------------------------------------------------------------");
 
     // Shuffle and take the required count
     const finalOptions = _.shuffle(distinctValues).slice(0, count);
-    console.log(`--- [getRandomDistinct V4] Returning ${finalOptions.length} options:`, finalOptions);
+    console.log(`--- [getRandomDistinct V5] Returning ${finalOptions.length} options:`, finalOptions);
     return finalOptions;
 
   } catch (error) {
-    console.error("--- [getRandomDistinct V4] Error during fetch or processing: ---", error);
+    console.error("--- [getRandomDistinct V5] Error during fetch or processing: ---", error);
     return []; // Return empty array on error
   }
 }
@@ -76,12 +94,17 @@ export async function createQuestion(type: 1 | 2 | 3 | 4): Promise<QuestionForma
   try {
     // Randomly choose between film and game quotes
     const modelName = Math.random() < 0.5 ? 'filmQuote' : 'gameQuote';
-    const totalQuotes = await prisma[modelName].count();
+
+    // Explicitly call count based on modelName
+    let totalQuotes = 0;
+    if (modelName === 'filmQuote') {
+        totalQuotes = await prisma.filmQuote.count();
+    } else {
+        totalQuotes = await prisma.gameQuote.count();
+    }
 
     if (totalQuotes < 4 && (type === 1 || type === 2)) {
-      console.warn("Need at least 4 quotes with distinct values for the chosen field to reliably generate type 1 or 2 questions.");
-      // Decide if you want to return null or try anyway
-      // return null;
+      console.warn(`Need at least 4 quotes with distinct values for the chosen field to reliably generate type ${type} questions.`);
     }
     if (totalQuotes === 0) {
       console.error("No quotes found in the database.");
@@ -90,10 +113,16 @@ export async function createQuestion(type: 1 | 2 | 3 | 4): Promise<QuestionForma
 
     // Fetch a random quote to base the question on
     const skip = Math.floor(Math.random() * totalQuotes);
-    const [correctQuoteData] = await prisma[modelName].findMany({
-      take: 1,
-      skip: skip,
-    }) as (FilmQuote | GameQuote)[]; // Type assertion for clarity
+
+    // Explicitly call findMany based on modelName
+    let correctQuoteData: FilmQuote | GameQuote | null = null;
+    if (modelName === 'filmQuote') {
+        const results = await prisma.filmQuote.findMany({ take: 1, skip: skip });
+        correctQuoteData = results[0] ?? null;
+    } else {
+        const results = await prisma.gameQuote.findMany({ take: 1, skip: skip });
+        correctQuoteData = results[0] ?? null;
+    }
 
     // --- DEBUG LOGGING --- >
     console.log("\n--- Fetched Correct Quote Data ---");
@@ -117,6 +146,7 @@ export async function createQuestion(type: 1 | 2 | 3 | 4): Promise<QuestionForma
       case 1: {
         if (!correctQuoteData.image) return null;
         correctAnswer = correctQuoteData.quote;
+        // Call getRandomDistinct with correct field name as string literal
         const incorrectOptions = await getRandomDistinct(modelName, 'quote', neededIncorrectOptions, correctQuoteData.id, correctAnswer);
         if (incorrectOptions.length < neededIncorrectOptions) {
           console.warn(`Warning: Could only find ${incorrectOptions.length} distinct incorrect quotes for type 1.`);
@@ -131,6 +161,7 @@ export async function createQuestion(type: 1 | 2 | 3 | 4): Promise<QuestionForma
       case 2: {
         if (!correctQuoteData.image || !correctQuoteData.to) return null;
         correctAnswer = correctQuoteData.to;
+        // Call getRandomDistinct with correct field name as string literal
         const incorrectOptions = await getRandomDistinct(modelName, 'to', neededIncorrectOptions, correctQuoteData.id, correctAnswer);
         if (incorrectOptions.length < neededIncorrectOptions) {
           console.warn(`Warning: Could only find ${incorrectOptions.length} distinct incorrect 'to' values for type 2.`);
@@ -145,6 +176,7 @@ export async function createQuestion(type: 1 | 2 | 3 | 4): Promise<QuestionForma
       case 3: {
         if (!correctQuoteData.voice_record && !correctQuoteData.quote) return null;
         correctAnswer = correctQuoteData.character;
+        // Call getRandomDistinct with correct field name as string literal
         const incorrectOptions = await getRandomDistinct(modelName, 'character', neededIncorrectOptions, correctQuoteData.id, correctAnswer);
         if (incorrectOptions.length < neededIncorrectOptions) {
           console.warn(`Warning: Could only find ${incorrectOptions.length} distinct incorrect characters for type 3.`);
@@ -160,6 +192,7 @@ export async function createQuestion(type: 1 | 2 | 3 | 4): Promise<QuestionForma
       case 4: {
         if (!correctQuoteData.voice_record && !correctQuoteData.quote) return null;
         correctAnswer = correctQuoteData.title;
+        // Call getRandomDistinct with correct field name as string literal
         const incorrectOptions = await getRandomDistinct(modelName, 'title', neededIncorrectOptions, correctQuoteData.id, correctAnswer);
         if (incorrectOptions.length < neededIncorrectOptions) {
           console.warn(`Warning: Could only find ${incorrectOptions.length} distinct incorrect titles for type 4.`);
@@ -208,15 +241,15 @@ async function testQuestions() {
   const q1 = await createQuestion(1);
   console.log(q1);
 
-  console.log("\\n--- Question Type 2 ---");
+  console.log("\n--- Question Type 2 ---");
   const q2 = await createQuestion(2);
   console.log(q2);
 
-  console.log("\\n--- Question Type 3 ---");
+  console.log("\n--- Question Type 3 ---");
   const q3 = await createQuestion(3);
   console.log(q3);
 
-  console.log("\\n--- Question Type 4 ---");
+  console.log("\n--- Question Type 4 ---");
   const q4 = await createQuestion(4);
   console.log(q4);
 }

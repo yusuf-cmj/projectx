@@ -19,7 +19,7 @@ import { useState } from "react"
 import SingleplayerHistory from "@/components/SingleplayerHistory" // ✅ import et
 // Add Firebase imports
 import { db } from '@/lib/firebase'; // Adjust path if needed
-import { ref, set, serverTimestamp, get, update } from 'firebase/database';
+import { ref, set, serverTimestamp, get } from 'firebase/database';
 import { useSession } from 'next-auth/react'; // Import useSession
 // import { useAuth } from '@/context/AuthContext'; // Assuming you have an AuthContext
 
@@ -122,9 +122,9 @@ export default function HomeTabs() {
            router.push(`/multiplayer/lobby/${code}`);
            return;
         }
-        // Add or update player data
+        // Add or update player data using set to ensure all fields are present
         const playerRef = ref(db, `rooms/${code}/players/${userId}`);
-        await set(playerRef, { // Use set instead of update to ensure all fields are present
+        await set(playerRef, {
           name: userName,
           score: 0,
           isReady: false,

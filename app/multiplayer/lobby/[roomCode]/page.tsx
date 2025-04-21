@@ -230,7 +230,7 @@ export default function LobbyPage() {
 
   const playersArray = roomData.players ? Object.entries(roomData.players) : [];
   const isCreator = userId && roomData.creatorId === userId;
-  const allPlayersReady = playersArray.length > 0 && playersArray.every(([_, player]) => player.isReady);
+  const allPlayersReady = playersArray.length > 0 && playersArray.every(([, player]) => player.isReady);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-purple-900 to-indigo-900 flex flex-col items-center px-4 py-8">

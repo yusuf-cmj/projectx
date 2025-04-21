@@ -25,6 +25,25 @@ const nextConfig: NextConfig = {
     }
     return config;
   },
+  // Add image configuration
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'storage.googleapis.com',
+        port: '',
+        pathname: '/repliq-user/**', // Allow images from this GCS bucket path
+      },
+      {
+        protocol: 'https',
+        hostname: 'lh3.googleusercontent.com', // For Google User profile images
+        port: '',
+        pathname: '/**',
+      },
+    ],
+    // Deprecated alternative (use remotePatterns if possible):
+    // domains: ['storage.googleapis.com', 'lh3.googleusercontent.com'],
+  },
 };
 
 export default nextConfig;

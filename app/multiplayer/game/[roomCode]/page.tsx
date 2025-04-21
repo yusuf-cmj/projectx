@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import NextImage from 'next/image';
 import { useParams, useRouter } from 'next/navigation';
 import { db } from '@/lib/firebase';
 import { ref, onValue, off, update, serverTimestamp } from 'firebase/database';
 import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
 
 // Interfaces (match backend QuestionFormat)
 interface Quote {
@@ -35,8 +35,8 @@ interface RoomData {
   players: { [playerId: string]: Player };
   questions?: Quote[];
   currentQuestionIndex?: number;
-  currentQuestionStartTime?: any; // Can be number (timestamp) or object (serverTimestamp placeholder)
-  answers?: { [questionIndex: number]: { [playerId: string]: { answer: string; timestamp: any } } }; // Store answer and time
+  currentQuestionStartTime?: number | object; // Can be number (timestamp) or object (serverTimestamp placeholder)
+  answers?: { [questionIndex: number]: { [playerId: string]: { answer: string; timestamp: number | object } } }; // Store answer and time
   preloadMediaUrl?: string | null;
 }
 
@@ -56,6 +56,7 @@ export default function MultiplayerGamePage() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [timeLeft, setTimeLeft] = useState(QUESTION_DURATION);
     const timerIntervalRef = useRef<NodeJS.Timeout | null>(null); // Ref to store timer interval
+    const processedIndexRef = useRef<number | null>(null); // Ref to track processed index
     const userId = session?.user?.id;
 
     // Function to calculate time left based on server start time
@@ -67,7 +68,7 @@ export default function MultiplayerGamePage() {
     };
 
     // --- Function to move to next question or end game (RUNS ONLY ON CREATOR) ---
-    const moveToNextQuestionOrEnd = async () => {
+    const moveToNextQuestionOrEnd = useCallback(async () => {
         // Double-check conditions on entry
         if (!roomData || !currentQuestion || !userId || userId !== roomData.creatorId || roomData.status !== 'in-game') {
              console.warn("moveToNextQuestionOrEnd called prematurely or by non-creator.");
@@ -81,7 +82,7 @@ export default function MultiplayerGamePage() {
         const answersForCurrentQuestion = roomData.answers?.[currentIndex] ?? {};
 
         // --- SCORING LOGIC --- 
-        const scoreUpdates: { [key: string]: any } = {};
+        const scoreUpdates: { [key: string]: number } = {};
         playersInRoom.forEach(playerId => {
            const playerData = roomData.players[playerId];
            const playerAnswerData = answersForCurrentQuestion[playerId];
@@ -127,7 +128,7 @@ export default function MultiplayerGamePage() {
             console.error("Error during question transition:", error);
         }
         // --- END TRANSITION LOGIC ---
-    };
+    }, [roomData, currentQuestion, userId, roomCode, timeLeft]);
 
     // --- Effect for Creator to Check Transition Conditions (Existing) ---
     useEffect(() => {
@@ -145,18 +146,16 @@ export default function MultiplayerGamePage() {
         const timeIsUp = timeLeft <= 0;
 
         if (allPlayersAnswered || timeIsUp) {
-             // Prevent multiple rapid calls if state updates slightly delayed
-            const alreadyProcessedKey = `processed_${currentIndex}`; 
-            if (!(window as any)[alreadyProcessedKey]) {
-                 (window as any)[alreadyProcessedKey] = true;
+             // Prevent multiple rapid calls using ref
+            if (processedIndexRef.current !== currentIndex) {
+                 processedIndexRef.current = currentIndex; // Mark as processing/processed
                  console.log(`Creator triggering transition for index ${currentIndex}. All Answered: ${allPlayersAnswered}, Time Up: ${timeIsUp}`);
                  moveToNextQuestionOrEnd();
-                 // Reset flag for the next potential transition check after a delay
-                 // This is a simple debounce/flag mechanism
-                 setTimeout(() => { (window as any)[alreadyProcessedKey] = false; }, 1500); 
+                 // No need for setTimeout flag reset with ref approach
             }
         }
-    }, [roomData?.answers, roomData?.currentQuestionIndex, timeLeft, roomData?.creatorId, userId, roomData?.status, roomData?.players]); // Dependencies adjusted slightly
+    // Added moveToNextQuestionOrEnd and roomData as dependencies
+    }, [roomData, timeLeft, userId, moveToNextQuestionOrEnd]); 
 
     // --- Effect for Preloading Media (All Clients) ---
     useEffect(() => {
@@ -240,8 +239,8 @@ export default function MultiplayerGamePage() {
                 timerIntervalRef.current = null;
             }
         };
-        // Rerun when question index or start time changes
-    }, [roomData?.currentQuestionIndex, roomData?.currentQuestionStartTime, roomData?.status]);
+        // Rerun when question index or start time changes (added roomData)
+    }, [roomData, roomData?.currentQuestionIndex, roomData?.currentQuestionStartTime, roomData?.status]);
 
     // Main Effect for Firebase Listener
     useEffect(() => {
@@ -421,7 +420,7 @@ export default function MultiplayerGamePage() {
                     </h2>
                     <p className="text-xl mb-2 text-purple-200">Final Scores:</p>
                     <ul className="space-y-3 mb-8">
-                        {sortedPlayers.map(([id, player], index) => (
+                        {sortedPlayers.map(([id, player]) => (
                             <li 
                                 key={id} 
                                 className={`flex justify-between items-center py-2 px-4 rounded-lg transition-all duration-200 hover:scale-105 ${
@@ -519,11 +518,13 @@ export default function MultiplayerGamePage() {
             {/* Media Area - Centered */}
             <div className="mb-6">
               {currentQuestion.media?.image && (
-                <div className="flex justify-center items-center">
-                  <img 
+                <div className="relative flex justify-center items-center h-96">
+                  <NextImage 
                     src={currentQuestion.media.image} 
                     alt="scene" 
-                    className="max-w-full max-h-96 w-auto h-auto object-contain rounded-lg border border-purple-400/20 shadow-lg shadow-purple-500/20" 
+                    layout="fill" 
+                    objectFit="contain" 
+                    className="rounded-lg border border-purple-400/20 shadow-lg shadow-purple-500/20" 
                   />
                 </div>
               )}
@@ -531,7 +532,7 @@ export default function MultiplayerGamePage() {
               {currentQuestion.media?.voice_record && (
                 <div className="flex flex-col items-center justify-center gap-2">
                   {currentQuestion.media.quote && (
-                    <p className="text-center italic text-purple-200 mb-2">"{currentQuestion.media.quote}"</p>
+                    <p className="text-center italic text-purple-200 mb-2">&quot;{currentQuestion.media.quote}&quot;</p>
                   )}
                   <div className="w-full max-w-md">
                     <audio
@@ -581,7 +582,7 @@ export default function MultiplayerGamePage() {
               <p className="text-center mt-6 text-green-400 font-semibold">Your answer is submitted! Waiting for others...</p>
             )}
             {timeLeft <= 0 && !playerAnswered && (
-              <p className="text-center mt-6 text-red-400 font-semibold">Time's up!</p>
+              <p className="text-center mt-6 text-red-400 font-semibold">Time&apos;s up!</p>
             )}
           </div>
         </div>

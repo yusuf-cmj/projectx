@@ -1,9 +1,9 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import NextImage from 'next/image'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
-import { Progress } from '@/components/ui/progress'
 import { Dialog, DialogContent, DialogTrigger, DialogTitle } from '@/components/ui/dialog'
 import { X } from 'lucide-react'
 
@@ -175,11 +175,13 @@ export default function SingleplayerPlayPage() {
         </p>
 
         {question.media?.image && (
-          <div className="flex justify-center items-center mb-6">
-            <img 
+          <div className="relative flex justify-center items-center mb-6 h-96">
+            <NextImage 
               src={question.media.image} 
               alt="scene" 
-              className="max-w-full max-h-96 w-auto h-auto object-contain rounded-lg border border-purple-400/20 shadow-lg shadow-purple-500/20" 
+              layout="fill" 
+              objectFit="contain"
+              className="rounded-lg border border-purple-400/20 shadow-lg shadow-purple-500/20" 
             />
           </div>
         )}

@@ -39,6 +39,15 @@ interface PasswordChangeModalProps {
     onClose: () => void
 }
 
+// Define a type for the field props passed by FormField render
+type FormFieldRenderProps = {
+    name: string;
+    value: string;
+    onChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
+    onBlur: () => void;
+    ref: React.Ref<HTMLInputElement>; // Input elements need a ref
+  };
+
 export function PasswordChangeModal({ isOpen, onClose }: PasswordChangeModalProps) {
     const [isLoading, setIsLoading] = useState(false)
     const form = useForm<PasswordChangeForm>({
@@ -91,7 +100,7 @@ export function PasswordChangeModal({ isOpen, onClose }: PasswordChangeModalProp
                         <FormField
                             control={form.control}
                             name="currentPassword"
-                            render={({ field }: { field: any }) => (
+                            render={({ field }: { field: FormFieldRenderProps }) => (
                                 <FormItem>
                                     <FormLabel>Current Password</FormLabel>
                                     <FormControl>
@@ -104,7 +113,7 @@ export function PasswordChangeModal({ isOpen, onClose }: PasswordChangeModalProp
                         <FormField
                             control={form.control}
                             name="newPassword"
-                            render={({ field }: { field: any }) => (
+                            render={({ field }: { field: FormFieldRenderProps }) => (
                                 <FormItem>
                                     <FormLabel>New Password</FormLabel>
                                     <FormControl>
@@ -117,7 +126,7 @@ export function PasswordChangeModal({ isOpen, onClose }: PasswordChangeModalProp
                         <FormField
                             control={form.control}
                             name="confirmNewPassword"
-                            render={({ field }: { field: any }) => (
+                            render={({ field }: { field: FormFieldRenderProps }) => (
                                 <FormItem>
                                     <FormLabel>Confirm New Password</FormLabel>
                                     <FormControl>
