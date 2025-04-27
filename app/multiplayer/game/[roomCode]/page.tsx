@@ -171,6 +171,29 @@ export default function MultiplayerGamePage() {
     }, [roomData, currentQuestion, userId, roomCode, timeLeft]);
 
     useEffect(() => {
+      if (roomData?.status === 'finished' && userId && roomData.players?.[userId]) {
+        const saveScore = async () => {
+          try {
+            await fetch("/api/game-history", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                score: roomData.players[userId].score,
+                mode: "Multiplayer",
+              }),
+            });
+            console.log("✅ Multiplayer score saved successfully!");
+          } catch (error) {
+            console.error("❌ Failed to save multiplayer score:", error);
+          }
+        };
+        saveScore();
+      }
+    }, [roomData?.status, userId]);
+    
+    useEffect(() => {
         if (!roomData || !userId || userId !== roomData.creatorId || roomData.status !== 'in-game') {
             return;
         }
@@ -503,13 +526,33 @@ export default function MultiplayerGamePage() {
                   ))}
                 </ul>
                 <Button 
-                  variant="default" 
-                  size="lg" 
-                  onClick={() => router.push('/home')}
-                  className="w-full bg-purple-600 hover:bg-purple-500 text-lg transition-all duration-300 hover:shadow-lg hover:scale-105 active:scale-95"
-                >
-                  Back to Home
-                </Button>
+  variant="default" 
+  size="lg" 
+  onClick={async () => {
+    if (roomData && userId && roomData.players?.[userId]) {
+      try {
+        await fetch("/api/game-history", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            score: roomData.players[userId].score,
+            mode: "Multiplayer",
+          }),
+        });
+        console.log("✅ Multiplayer score saved successfully!");
+      } catch (error) {
+        console.error("❌ Failed to save multiplayer score:", error);
+      }
+    }
+    router.push('/home');
+  }}
+  className="w-full bg-purple-600 hover:bg-purple-500 text-lg transition-all duration-300 hover:shadow-lg hover:scale-105 active:scale-95"
+>
+  Back to Home
+</Button>
+
               </div>
             </div>
         );

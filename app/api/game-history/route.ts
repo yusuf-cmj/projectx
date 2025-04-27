@@ -13,6 +13,12 @@ export async function GET() {
   const data = await prisma.gameHistory.findMany({
     where: { userId: session.user.id },
     orderBy: { playedAt: "desc" },
+    select: {
+      id: true,
+      score: true,
+      playedAt: true,
+      mode: true, // ✅ Burası eksikti
+    }
   })
 
   return NextResponse.json(data)
@@ -26,7 +32,7 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json()
-  const { score } = body
+  const { score, mode } = body
 
   if (typeof score !== "number") {
     return NextResponse.json({ error: "Invalid score" }, { status: 400 })
@@ -36,8 +42,9 @@ export async function POST(req: NextRequest) {
     data: {
       userId: session.user.id,
       score,
+      mode, // ✅ mode bilgisi de kaydediliyor
     },
-  })
+  })  
 
   return NextResponse.json(created, { status: 201 })
 }

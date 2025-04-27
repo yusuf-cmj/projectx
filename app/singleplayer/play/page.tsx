@@ -64,7 +64,7 @@ export default function SingleplayerPlayPage() {
       const response = await fetch("/api/game-history", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ score: finalScore }),
+        body: JSON.stringify({ score: finalScore, mode: "Singleplayer" }), // 🔥 EKLENDİ
       });
       if (!response.ok) {
         const errorData = await response.json();
@@ -75,7 +75,7 @@ export default function SingleplayerPlayPage() {
       console.error("Error saving game score:", error);
       toast.error(error instanceof Error ? error.message : "Could not save score");
     }
-  }, [session]);
+  }, [session]);  
 
   useEffect(() => {
     const loadQuestion = async () => {

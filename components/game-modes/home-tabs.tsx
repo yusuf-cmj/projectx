@@ -35,6 +35,13 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
 
+interface GameHistoryItem {
+  id: number;
+  score: number;
+  playedAt: string;
+  mode: string; // Singleplayer veya Multiplayer
+}
+
 // Function to generate a simple random room code
 function generateRoomCode(length: number = 6): string {
   const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -49,6 +56,7 @@ export default function HomeTabs() {
   const router = useRouter() // ✅ EKLENDİ: Yönlendirme için
   const [showHistory, setShowHistory] = useState(false)
   const { data: session, status } = useSession(); // Get session status
+  const [history, setHistory] = useState<GameHistoryItem[]>([]);
   // const { user } = useAuth(); // Get current user if available
 
   // State for Dialogs and Loading
@@ -187,6 +195,47 @@ export default function HomeTabs() {
 
   return (
     <div>
+      {!showHistory && (
+  <Tabs defaultValue="singleplayer" className="w-full max-w-md mx-auto">
+{showHistory && (
+  <div className="min-h-screen bg-gradient-to-b from-purple-900 to-indigo-900 p-6">
+    <div className="max-w-2xl mx-auto">
+      <div className="bg-purple-800/30 backdrop-blur-sm p-6 rounded-2xl border border-purple-400/20 shadow-lg shadow-purple-500/20">
+        <h2 className="text-2xl font-bold mb-6 text-white tracking-wide flex items-center gap-2">
+          🎮 Game History
+        </h2>
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="text-left border-b border-purple-400/20">
+                <th className="p-3 text-purple-200 font-semibold">Date</th>
+                <th className="p-3 text-purple-200 font-semibold">Game</th>
+                <th className="p-3 text-purple-200 font-semibold">Score</th>
+              </tr>
+            </thead>
+            <tbody>
+              {history.map((item) => (
+                <tr key={item.id} className="border-b border-purple-400/10 hover:bg-purple-700/20 transition-colors">
+                  <td className="p-3 text-white">{new Date(item.playedAt).toLocaleString()}</td>
+                  <td className="p-3 text-white">
+  {item.mode?.toLowerCase() === "multiplayer" ? "Multiplayer Mode" : "Singleplayer Mode"}
+</td>
+                  <td className="p-3 text-white">{item.score} points</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div className="text-center mt-6">
+          <Button variant="secondary" onClick={() => setShowHistory(false)}>⬅ Back</Button>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
+
+  </Tabs>
+)}
       <Tabs defaultValue="singleplayer" className="w-full max-w-md mx-auto">
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="singleplayer">
@@ -238,9 +287,14 @@ export default function HomeTabs() {
                     variant="outline"
                     size="default"
                     className="w-full"
-                    onClick={() => setShowHistory(true)}
+                    onClick={async () => {
+                      const res = await fetch("/api/game-history");
+                      const data = await res.json();
+                      setHistory(data);
+                      setShowHistory(true);
+                    }}
                   >
-                    History
+                     History
                   </Button>
                 </div>
               </CardContent>
