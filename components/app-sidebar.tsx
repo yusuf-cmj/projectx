@@ -16,9 +16,12 @@ import {
   MailWarning,
 } from "lucide-react"
 import { useSession } from "next-auth/react"
-import Link from "next/link"
 
-export function AppSidebar() {
+interface AppSidebarProps {
+  onPageChange: (page: string) => void
+}
+
+export function AppSidebar({ onPageChange }: AppSidebarProps) {
   const { data: session } = useSession()
 
   const userData = {
@@ -34,34 +37,34 @@ export function AppSidebar() {
       </SidebarHeader>
       <SidebarContent>
         <div className="flex flex-col gap-1 px-2 py-4">
-          <Link
-            href="/admin"
-            className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-white hover:bg-purple-600/30 transition"
+          <button
+            onClick={() => onPageChange('dashboard')}
+            className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-black hover:bg-purple-600/30 transition"
           >
             <LayoutDashboard className="w-5 h-5" />
             <span className="hidden md:inline">Dashboard</span>
-          </Link>
-          <Link
-            href="/admin/create"
-            className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-white hover:bg-purple-600/30 transition"
+          </button>
+          <button
+            onClick={() => onPageChange('create')}
+            className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-black hover:bg-purple-600/30 transition"
           >
             <PlusCircle className="w-5 h-5" />
             <span className="hidden md:inline">Create Question</span>
-          </Link>
-          <Link
-            href="/admin/edit"
-            className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-white hover:bg-purple-600/30 transition"
+          </button>
+          <button
+            onClick={() => onPageChange('edit')}
+            className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-black hover:bg-purple-600/30 transition"
           >
             <FilePenLine className="w-5 h-5" />
             <span className="hidden md:inline">Edit Question</span>
-          </Link>
-          <Link
-            href="/admin/requests"
-            className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-white hover:bg-purple-600/30 transition"
+          </button>
+          <button
+            onClick={() => onPageChange('requests')}
+            className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-black hover:bg-purple-600/30 transition"
           >
             <MailWarning className="w-5 h-5" />
             <span className="hidden md:inline">Requests</span>
-          </Link>
+          </button>
         </div>
       </SidebarContent>
       <SidebarFooter />
