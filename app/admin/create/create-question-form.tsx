@@ -7,6 +7,13 @@ import * as z from 'zod'
 import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import {
   Form,
   FormControl,
   FormField,
@@ -24,7 +31,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { toast } from 'sonner'
-import { X } from 'lucide-react'
+import { X, Eye } from 'lucide-react'
 
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png"]
 const ACCEPTED_AUDIO_TYPES = ["audio/mpeg", "audio/mp3", "audio/wav"]
@@ -62,6 +69,7 @@ export function CreateQuestionForm() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [audioPreview, setAudioPreview] = useState<string | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [isImageModalOpen, setIsImageModalOpen] = useState(false)
 
   // Cleanup URLs when component unmounts
   useEffect(() => {
@@ -144,6 +152,9 @@ export function CreateQuestionForm() {
     clearImagePreview();
     form.reset();
   }
+
+  const openImageModal = () => setIsImageModalOpen(true);
+  const closeImageModal = () => setIsImageModalOpen(false);
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
@@ -264,6 +275,7 @@ export function CreateQuestionForm() {
                         accept=".mp3,.wav"
                         {...field}
                         onChange={handleAudioChange}
+                        disabled={isSubmitting}
                       />
                       {(audioPreview || value) && (
                         <div className="relative bg-gray-50 p-4 rounded-md border border-gray-200">
@@ -276,6 +288,8 @@ export function CreateQuestionForm() {
                             type="button"
                             onClick={clearAudioPreview}
                             className="absolute -top-2 -right-2 p-1 bg-red-500 rounded-full text-white hover:bg-red-600 shadow-md"
+                            disabled={isSubmitting}
+                            aria-label="Clear audio"
                           >
                             <X className="w-4 h-4" />
                           </button>
@@ -301,21 +315,34 @@ export function CreateQuestionForm() {
                         accept=".jpg,.jpeg,.png"
                         {...field}
                         onChange={handleImageChange}
+                        disabled={isSubmitting}
                       />
                       {(imagePreview || value) && (
-                        <div className="relative bg-gray-50 p-4 rounded-md border border-gray-200">
+                        <div className="relative group bg-gray-50 p-4 rounded-md border border-gray-200">
                           <Image
                             src={imagePreview || (value instanceof File ? URL.createObjectURL(value) : undefined) || ''}
                             alt="Preview"
                             width={400}
                             height={300}
-                            className="w-full max-h-[200px] object-contain rounded-md"
+                            className="w-full max-h-[200px] object-contain rounded-md cursor-pointer transition-opacity group-hover:opacity-70"
                             unoptimized={true}
+                            onClick={openImageModal}
                           />
+                          <div 
+                            className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer rounded-md"
+                            onClick={openImageModal}
+                           >
+                            <Eye className="w-10 h-10 text-white" />
+                          </div>
                           <button
                             type="button"
-                            onClick={clearImagePreview}
-                            className="absolute -top-2 -right-2 p-1 bg-red-500 rounded-full text-white hover:bg-red-600 shadow-md"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              clearImagePreview();
+                            }}
+                            className="absolute -top-2 -right-2 z-10 p-1 bg-red-500 rounded-full text-white hover:bg-red-600 shadow-md"
+                            aria-label="Clear image"
+                            disabled={isSubmitting}
                           >
                             <X className="w-4 h-4" />
                           </button>
@@ -344,6 +371,27 @@ export function CreateQuestionForm() {
           </div>
         </form>
       </Form>
+
+      <Dialog open={isImageModalOpen} onOpenChange={setIsImageModalOpen}>
+        <DialogContent className="sm:max-w-[600px] p-0">
+          <DialogHeader className="p-4 border-b">
+            <DialogTitle>Image Preview</DialogTitle>
+          </DialogHeader>
+          <div className="p-4 flex justify-center items-center">
+            {imagePreview && (
+              <Image
+                src={imagePreview}
+                alt="Full preview"
+                width={550} 
+                height={450}
+                className="max-w-full max-h-[70vh] object-contain"
+                unoptimized={true}
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
     </div>
   )
 } 

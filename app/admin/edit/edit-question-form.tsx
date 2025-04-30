@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import {
   Table,
@@ -27,7 +27,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Edit2, Trash2, Music, Image as ImageIcon } from 'lucide-react'
+import { Edit2, Trash2, Music, Image as ImageIcon, X, Eye } from 'lucide-react'
 import { toast } from 'sonner'
 import Image from 'next/image'
 
@@ -74,6 +74,14 @@ export function EditQuestionForm() {
   const [editedQuote, setEditedQuote] = useState<typeof dummyQuotes[0] | null>(null)
   const [audioPreview, setAudioPreview] = useState<string | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [isImageModalOpen, setIsImageModalOpen] = useState(false)
+
+  useEffect(() => {
+    return () => {
+      if (audioPreview) URL.revokeObjectURL(audioPreview)
+      if (imagePreview) URL.revokeObjectURL(imagePreview)
+    }
+  }, [audioPreview, imagePreview])
 
   const handleEdit = (quote: typeof dummyQuotes[0]) => {
     setSelectedQuote(quote)
@@ -95,6 +103,7 @@ export function EditQuestionForm() {
       }
       const url = URL.createObjectURL(file)
       setAudioPreview(url)
+      setEditedQuote(prev => prev ? { ...prev, voice_record: file.name } : null)
     }
   }
 
@@ -107,7 +116,23 @@ export function EditQuestionForm() {
       }
       const url = URL.createObjectURL(file)
       setImagePreview(url)
+      setEditedQuote(prev => prev ? { ...prev, image: file.name } : null)
     }
+  }
+
+  const openImageModal = () => setIsImageModalOpen(true)
+  const closeImageModal = () => setIsImageModalOpen(false)
+
+  const clearAudioPreview = () => {
+    if (audioPreview) URL.revokeObjectURL(audioPreview)
+    setAudioPreview(null)
+    setEditedQuote(prev => prev ? { ...prev, voice_record: selectedQuote?.voice_record ?? null } : null)
+  }
+
+  const clearImagePreview = () => {
+    if (imagePreview) URL.revokeObjectURL(imagePreview)
+    setImagePreview(null)
+    setEditedQuote(prev => prev ? { ...prev, image: selectedQuote?.image ?? null } : null)
   }
 
   const handleSaveEdit = (e: React.FormEvent) => {
@@ -127,6 +152,7 @@ export function EditQuestionForm() {
     if (imagePreview) URL.revokeObjectURL(imagePreview)
     setAudioPreview(null)
     setImagePreview(null)
+    closeImageModal()
     toast.success('Quote updated successfully')
   }
 
@@ -267,8 +293,8 @@ export function EditQuestionForm() {
                   }
                 />
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="grid gap-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+                <div className="grid gap-2 content-start">
                   <label>Voice Record</label>
                   <Input
                     type="file"
@@ -276,14 +302,24 @@ export function EditQuestionForm() {
                     onChange={handleAudioChange}
                   />
                   {(audioPreview || editedQuote?.voice_record) && (
-                    <audio
-                      controls
-                      src={audioPreview || editedQuote?.voice_record || ''}
-                      className="w-full"
-                    />
+                    <div className="relative bg-gray-50 p-4 rounded-md border border-gray-200">
+                      <audio
+                        controls
+                        src={audioPreview || editedQuote?.voice_record || ''}
+                        className="w-full"
+                      />
+                      <button
+                        type="button"
+                        onClick={clearAudioPreview}
+                        className="absolute -top-2 -right-2 p-1 bg-red-500 rounded-full text-white hover:bg-red-600 shadow-md"
+                        aria-label="Clear audio"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
                   )}
                 </div>
-                <div className="grid gap-2">
+                <div className="grid gap-2 content-start">
                   <label>Scene Image</label>
                   <Input
                     type="file"
@@ -291,14 +327,45 @@ export function EditQuestionForm() {
                     onChange={handleImageChange}
                   />
                   {(imagePreview || editedQuote?.image) && (
-                    <Image
-                      src={imagePreview || editedQuote?.image || ''}
-                      alt="Preview"
-                      width={400}
-                      height={300}
-                      className="w-full max-h-[200px] object-contain rounded-md"
-                      unoptimized={true}
-                    />
+                    <div className="relative group bg-gray-50 p-4 rounded-md border border-gray-200 aspect-video flex items-center justify-center">
+                      <Image
+                        src={imagePreview || editedQuote?.image || ''}
+                        alt="Preview"
+                        layout="fill"
+                        objectFit="contain"
+                        className="rounded-md cursor-pointer transition-opacity group-hover:opacity-70"
+                        unoptimized={true}
+                        onClick={openImageModal}
+                        onError={(e) => e.currentTarget.style.display = 'none'}
+                      />
+                      {!(imagePreview || editedQuote?.image) && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-gray-100 rounded-md">
+                          <ImageIcon className="w-12 h-12 text-gray-400" />
+                        </div>
+                      )}
+                      <div
+                        className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer rounded-md"
+                        onClick={openImageModal}
+                      >
+                        <Eye className="w-10 h-10 text-white" />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          clearImagePreview();
+                        }}
+                        className="absolute -top-2 -right-2 z-10 p-1 bg-red-500 rounded-full text-white hover:bg-red-600 shadow-md"
+                        aria-label="Clear image"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
+                  {!imagePreview && !editedQuote?.image && (
+                    <div className="bg-gray-100 p-4 rounded-md border border-gray-200 aspect-video flex items-center justify-center">
+                      <ImageIcon className="w-12 h-12 text-gray-400" />
+                    </div>
                   )}
                 </div>
               </div>
@@ -310,6 +377,27 @@ export function EditQuestionForm() {
             </Button>
             <Button onClick={handleSaveEdit}>Save changes</Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Resim Görüntüleme Modal'ı (Edit için) */}
+      <Dialog open={isImageModalOpen} onOpenChange={setIsImageModalOpen}>
+        <DialogContent className="sm:max-w-[600px] p-0">
+          <DialogHeader className="p-4 border-b">
+            <DialogTitle>Image Preview</DialogTitle>
+          </DialogHeader>
+          <div className="p-4 flex justify-center items-center">
+            {(imagePreview || editedQuote?.image) && (
+              <Image
+                src={imagePreview || editedQuote?.image || ''}
+                alt="Full preview"
+                width={550}
+                height={450}
+                className="max-w-full max-h-[70vh] object-contain"
+                unoptimized={true}
+              />
+            )}
+          </div>
         </DialogContent>
       </Dialog>
 
