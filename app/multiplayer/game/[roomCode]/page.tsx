@@ -170,28 +170,34 @@ export default function MultiplayerGamePage() {
         // --- END TRANSITION LOGIC ---
     }, [roomData, currentQuestion, userId, roomCode, timeLeft]);
 
+    const scoreSavedRef = useRef(false);
+
     useEffect(() => {
-      if (roomData?.status === 'finished' && userId && roomData.players?.[userId]) {
-        const saveScore = async () => {
-          try {
-            await fetch("/api/game-history", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                score: roomData.players[userId].score,
-                mode: "Multiplayer",
-              }),
-            });
-            console.log("✅ Multiplayer score saved successfully!");
-          } catch (error) {
-            console.error("❌ Failed to save multiplayer score:", error);
-          }
-        };
-        saveScore();
+      if (!roomData || !userId || scoreSavedRef.current) return;
+    
+      const isFinished = roomData.status === 'finished';
+      const userHasScore = typeof roomData.players?.[userId]?.score === 'number';
+    
+      if (isFinished && userHasScore) {
+        scoreSavedRef.current = true;
+    
+        fetch("/api/game-history", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            score: roomData.players[userId].score,
+            mode: "Multiplayer",
+          }),
+        })
+          .then(() => console.log("✅ Score saved once"))
+          .catch((error) => {
+            console.error("❌ Save failed", error);
+            scoreSavedRef.current = false; // tekrar denenebilsin diye geri al
+          });
       }
-    }, [roomData?.status, userId]);
+    }, [roomData, userId]);
     
     useEffect(() => {
         if (!roomData || !userId || userId !== roomData.creatorId || roomData.status !== 'in-game') {
@@ -528,26 +534,7 @@ export default function MultiplayerGamePage() {
                 <Button 
   variant="default" 
   size="lg" 
-  onClick={async () => {
-    if (roomData && userId && roomData.players?.[userId]) {
-      try {
-        await fetch("/api/game-history", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            score: roomData.players[userId].score,
-            mode: "Multiplayer",
-          }),
-        });
-        console.log("✅ Multiplayer score saved successfully!");
-      } catch (error) {
-        console.error("❌ Failed to save multiplayer score:", error);
-      }
-    }
-    router.push('/home');
-  }}
+  onClick={() => router.push('/home')}
   className="w-full bg-purple-600 hover:bg-purple-500 text-lg transition-all duration-300 hover:shadow-lg hover:scale-105 active:scale-95"
 >
   Back to Home

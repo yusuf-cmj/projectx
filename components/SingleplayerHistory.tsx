@@ -44,10 +44,10 @@ export default function SingleplayerHistory() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-purple-900 to-indigo-900 p-6">
       <div className="max-w-2xl mx-auto">
-        <div className="bg-purple-800/30 backdrop-blur-sm p-6 rounded-2xl border border-purple-400/20 shadow-lg shadow-purple-500/20">
-          <h2 className="text-2xl font-bold mb-6 text-white tracking-wide flex items-center gap-2">
-            <span className="animate-bounce">🎮</span> Game History
-          </h2>
+        <div className="inline-grid bg-purple-800/30 backdrop-blur-sm p-6 rounded-2xl border border-purple-400/20 shadow-lg shadow-purple-500/20">
+          <div className="items-center inline-flex text-center m-auto"><h2 className="text-2xl font-bold mb-6 text-white tracking-wide flex items-center gap-2">
+            <span className="animate-bounce">🎮</span> Game History <span className="animate-bounce">🎮</span>
+          </h2></div>
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
@@ -64,7 +64,7 @@ export default function SingleplayerHistory() {
                     <td className="p-3 text-white">
                       {item.mode?.toLowerCase() === "multiplayer" ? "Multiplayer Mode" : "Singleplayer Mode"}
                     </td>
-                    <td className="p-3">
+                    <td className="p-3 inline-flex text-center">
                       <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
                         item.score >= 100 ? 'bg-green-600/30 text-green-400' :
                         item.score >= 50 ? 'bg-yellow-600/30 text-yellow-400' :
