@@ -11,7 +11,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog"
 import {
   Form,
@@ -148,26 +147,78 @@ export function CreateQuestionForm() {
 
   const handleCancel = (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
     clearAudioPreview();
     clearImagePreview();
     form.reset();
   }
 
   const openImageModal = () => setIsImageModalOpen(true);
-  const closeImageModal = () => setIsImageModalOpen(false);
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    setIsSubmitting(true);
+    const formData = new FormData();
+
+    // Temel alanları FormData'ya ekle
+    formData.append('type', values.type);
+    formData.append('quote', values.quote);
+    formData.append('character', values.character);
+    formData.append('title', values.title);
+    if (values.to) {
+      formData.append('to', values.to);
+    }
+
+    // Dosyaları ekle (varsa)
+    // Form state'indeki değerler File nesneleri olmalı
+    const voiceFile = form.getValues('voice_record');
+    const imageFile = form.getValues('image');
+
+    if (voiceFile instanceof File) {
+      formData.append('voice_record', voiceFile);
+    }
+    if (imageFile instanceof File) {
+      formData.append('image', imageFile);
+    }
+
     try {
-      setIsSubmitting(true)
-      // TODO: Implement backend integration
-      console.log('Form values:', values)
-      toast.success('Quote created successfully (demo)')
+      const response = await fetch('/api/questions', {
+        method: 'POST',
+        body: formData,
+        // Tarayıcı FormData ile Content-Type'ı otomatik ayarlar
+      });
+
+      if (!response.ok) {
+        let errorMsg = 'Failed to create quote';
+        try {
+            const errorData = await response.json();
+            console.error('API Error:', errorData);
+            // Zod hatalarını daha kullanıcı dostu göster
+            if (errorData.errors) {
+                 const messages = Object.entries(errorData.errors)
+                     .map(([field, msg]) => `${field}: ${(msg as string[]).join(', ')}`)
+                     .join('; ');
+                 errorMsg = `Validation failed: ${messages}`;
+            } else {
+                 errorMsg = errorData.error || `API Error (${response.status})`;
+            }
+        } catch (parseError: unknown) {
+             // JSON parse hatası
+             console.error("API response parsing error:", parseError);
+             errorMsg = `API Error (${response.status}) - Response not valid JSON`;
+        }
+        throw new Error(errorMsg);
+      }
+
+      const newQuestion = await response.json();
+      console.log('Successfully created:', newQuestion);
+      toast.success('Quote created successfully!');
       clearAudioPreview();
       clearImagePreview();
       form.reset();
-    } catch (error) {
-      console.error('Error creating quote:', error)
-      toast.error('Failed to create quote')
+    } catch (error: unknown) {
+      console.error('Error submitting form:', error);
+      const message = error instanceof Error ? error.message : 'An unexpected error occurred';
+      toast.error(message);
     } finally {
       setIsSubmitting(false)
     }
