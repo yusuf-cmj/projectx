@@ -38,6 +38,7 @@ interface RoomData {
   currentQuestionIndex?: number;
   currentQuestionStartTime?: object; // Using serverTimestamp object
   answers?: { [questionIndex: number]: { [playerId: string]: string } }; // Structure to store answers
+  gameMode?: 'normal' | 'rushmode'; // Add game mode field
 }
 
 export default function LobbyPage() {
@@ -82,17 +83,17 @@ export default function LobbyPage() {
         // *** ADDED: Check for empty room cleanup (by creator) ***
         const playerCount = data.players ? Object.keys(data.players).length : 0;
         // Check if current user is the creator AFTER session data is available
-        const currentUserId = session?.user?.id; 
+        const currentUserId = session?.user?.id;
         const isCreator = currentUserId && data.creatorId === currentUserId;
 
         if (playerCount === 0 && isCreator && data.status === 'waiting') {
-            console.log(`Creator ${currentUserId} detected an empty lobby (${roomCode}). Removing room...`);
-            // Remove the room immediately if empty and in waiting status
-            remove(roomRef)
-                .then(() => console.log(`Room ${roomCode} successfully removed by creator.`))
-                .catch((err) => console.error(`Error removing empty room ${roomCode}:`, err));
-            // Note: The listener will naturally stop receiving updates after removal.
-            // No need to explicitly navigate here, error handling will show room not found.
+          console.log(`Creator ${currentUserId} detected an empty lobby (${roomCode}). Removing room...`);
+          // Remove the room immediately if empty and in waiting status
+          remove(roomRef)
+            .then(() => console.log(`Room ${roomCode} successfully removed by creator.`))
+            .catch((err) => console.error(`Error removing empty room ${roomCode}:`, err));
+          // Note: The listener will naturally stop receiving updates after removal.
+          // No need to explicitly navigate here, error handling will show room not found.
         }
         // *****************************************
 
@@ -119,9 +120,9 @@ export default function LobbyPage() {
   // --- Ready Button Logic ---
   const handleReadyClick = async () => {
     if (!userId || !roomCode || !currentPlayer) {
-        console.error("Cannot toggle ready: User not logged in, room code missing, or player not in room.");
-        alert("Could not update ready status. Please try again.");
-        return;
+      console.error("Cannot toggle ready: User not logged in, room code missing, or player not in room.");
+      alert("Could not update ready status. Please try again.");
+      return;
     }
 
     const playerRef = ref(db, `rooms/${roomCode}/players/${userId}`);
@@ -155,35 +156,35 @@ export default function LobbyPage() {
         const randomType = Math.floor(Math.random() * 4) + 1 as 1 | 2 | 3 | 4;
         console.log(`Fetching question ${i + 1} (type ${randomType})...`);
         const response = await fetch(`/api/singleplayer-question?type=${randomType}`);
-        
+
         if (!response.ok) {
           throw new Error(`API Error (Type ${randomType}): ${response.status} ${response.statusText}`);
         }
-        
+
         const question = await response.json();
-        
+
         if (!question || !question.questionText) { // Basic validation
-            console.warn(`Received invalid question data for type ${randomType}, trying again...`);
-            // Optionally retry with the same i or a different type, or just fail
-            // For simplicity, we'll throw an error here to indicate failure to get enough questions
-            throw new Error(`Failed to fetch a valid question (Type ${randomType}) after API success.`);
+          console.warn(`Received invalid question data for type ${randomType}, trying again...`);
+          // Optionally retry with the same i or a different type, or just fail
+          // For simplicity, we'll throw an error here to indicate failure to get enough questions
+          throw new Error(`Failed to fetch a valid question (Type ${randomType}) after API success.`);
         } else {
-            // Convert relative media URLs to absolute URLs
-            if (question.media?.image && question.media.image.startsWith('/')) {
-                question.media.image = `${origin}${question.media.image}`;
-            }
-            if (question.media?.voice_record && question.media.voice_record.startsWith('/')) {
-                 question.media.voice_record = `${origin}${question.media.voice_record}`;
-            }
-            questions.push(question as Quote);
-            console.log(`Successfully fetched question ${i + 1}. Media URLs adjusted.`);
+          // Convert relative media URLs to absolute URLs
+          if (question.media?.image && question.media.image.startsWith('/')) {
+            question.media.image = `${origin}${question.media.image}`;
+          }
+          if (question.media?.voice_record && question.media.voice_record.startsWith('/')) {
+            question.media.voice_record = `${origin}${question.media.voice_record}`;
+          }
+          questions.push(question as Quote);
+          console.log(`Successfully fetched question ${i + 1}. Media URLs adjusted.`);
         }
         // Optional: Add a small delay between API calls if needed
         // await new Promise(resolve => setTimeout(resolve, 100)); 
       }
-      
+
       if (questions.length !== numberOfQuestions) {
-           throw new Error(`Could not fetch the required ${numberOfQuestions} questions. Got ${questions.length}.`);
+        throw new Error(`Could not fetch the required ${numberOfQuestions} questions. Got ${questions.length}.`);
       }
 
       // 2. Prepare Initial Game State
@@ -206,7 +207,7 @@ export default function LobbyPage() {
       console.error("Error starting game:", err);
       alert(`Failed to start the game: ${err instanceof Error ? err.message : 'Unknown error'}`);
       setIsStarting(false); // Re-enable button on error
-    } 
+    }
     // No need to set isStarting back to false on success
   };
   // --- End Start Game Logic ---
@@ -274,16 +275,38 @@ export default function LobbyPage() {
               {playersArray.map(([playerId, player]) => (
                 <li key={playerId} className="flex justify-between items-center p-3 rounded-lg bg-purple-700/20 hover:bg-purple-700/30 transition-colors">
                   <span className="text-white font-medium">{player.name || `Player ${playerId.substring(0, 6)}`}</span>
-                  <span className={`text-sm font-medium px-3 py-1 rounded-full ${
-                    player.isReady 
-                      ? 'bg-green-600/30 text-green-400' 
-                      : 'bg-yellow-600/30 text-yellow-400'
-                  }`}>
+                  <span className={`text-sm font-medium px-3 py-1 rounded-full ${player.isReady
+                    ? 'bg-green-600/30 text-green-400'
+                    : 'bg-yellow-600/30 text-yellow-400'
+                    }`}>
                     {player.isReady ? 'Ready' : 'Not Ready'}
                   </span>
                 </li>
               ))}
             </ul>
+          )}
+        </div>
+
+        <div className="bg-purple-800/20 backdrop-blur-sm p-6 rounded-xl border border-purple-400/20 mb-6">
+          <h2 className="text-2xl font-semibold mb-4 text-white tracking-wide flex items-center gap-2">
+            <span className="animate-bounce">🎮</span> Game Mode
+          </h2>
+          {userId === roomData?.creatorId ? (
+            <select
+              value={roomData?.gameMode || 'normal'}
+              onChange={(e) => {
+                const roomRef = ref(db, `rooms/${roomCode}`);
+                update(roomRef, { gameMode: e.target.value });
+              }}
+              className="w-full p-3 rounded-lg bg-purple-700/30 border border-purple-400/40 text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+            >
+              <option value="normal">Normal Mode</option>
+              <option value="rushmode">Rush Mode</option>
+            </select>
+          ) : (
+            <p className="text-purple-300 text-center">
+              {roomData?.gameMode === 'rushmode' ? 'Rush Mode' : 'Normal Mode'}
+            </p>
           )}
         </div>
 
@@ -293,11 +316,10 @@ export default function LobbyPage() {
           {currentPlayer && (
             <button
               onClick={handleReadyClick}
-              className={`w-full py-3 px-4 rounded-xl text-white font-bold transition-all duration-200 hover:scale-105 active:scale-95 ${
-                currentPlayer.isReady 
-                  ? 'bg-yellow-600 hover:bg-yellow-700' 
-                  : 'bg-green-600 hover:bg-green-700'
-              }`}
+              className={`w-full py-3 px-4 rounded-xl text-white font-bold transition-all duration-200 hover:scale-105 active:scale-95 ${currentPlayer.isReady
+                ? 'bg-yellow-600 hover:bg-yellow-700'
+                : 'bg-green-600 hover:bg-green-700'
+                }`}
             >
               {currentPlayer.isReady ? 'Set Not Ready' : 'Set Ready'}
             </button>
@@ -308,11 +330,10 @@ export default function LobbyPage() {
             <button
               onClick={handleStartGameClick}
               disabled={!allPlayersReady || playersArray.length < 1 || isStarting}
-              className={`w-full py-3 px-4 rounded-xl text-white font-bold transition-all duration-200 ${
-                !allPlayersReady || playersArray.length < 1 || isStarting
-                  ? 'bg-purple-900/50 cursor-not-allowed'
-                  : 'bg-blue-600 hover:bg-blue-700 hover:scale-105 active:scale-95'
-              }`}
+              className={`w-full py-3 px-4 rounded-xl text-white font-bold transition-all duration-200 ${!allPlayersReady || playersArray.length < 1 || isStarting
+                ? 'bg-purple-900/50 cursor-not-allowed'
+                : 'bg-blue-600 hover:bg-blue-700 hover:scale-105 active:scale-95'
+                }`}
             >
               {isStarting ? 'Starting...' : 'Start Game'}
             </button>
