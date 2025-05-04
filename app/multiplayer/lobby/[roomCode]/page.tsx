@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { db } from '@/lib/firebase'; // Adjust path if needed
 import { ref, onValue, off, update, serverTimestamp, remove } from 'firebase/database';
+import { Difficulty, DIFFICULTY_LEVELS } from '@/lib/difficulty';
 import { useSession } from 'next-auth/react'; // Import useSession
 // import { useAuth } from '@/context/AuthContext'; // Assuming you have an AuthContext
 
@@ -48,7 +49,8 @@ export default function LobbyPage() {
   const roomCode = typeof params?.roomCode === 'string' ? params.roomCode : null;
   const { data: session, status: sessionStatus } = useSession(); // Get session
   // const { user } = useAuth(); // Get current user if available
-
+  
+  const [difficulty, setDifficulty] = useState<Difficulty>('easy');
   const [roomData, setRoomData] = useState<RoomData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -194,6 +196,7 @@ export default function LobbyPage() {
         currentQuestionStartTime: serverTimestamp(),
         answers: {}, // Initialize empty answers object
         status: 'in-game', // Set status last
+        difficulty: difficulty,
       };
 
       // 3. Update Firebase
@@ -309,7 +312,28 @@ export default function LobbyPage() {
             </p>
           )}
         </div>
-
+        <div className="bg-purple-800/20 backdrop-blur-sm p-6 rounded-xl border border-purple-400/20 mb-6">
+        <h2 className="text-2xl font-semibold mb-4 text-white tracking-wide flex items-center gap-2">
+        <span className="animate-bounce">⚙️</span> Difficulty
+        </h2>
+        {userId === roomData?.creatorId ? (
+        <select
+        value={difficulty}
+        onChange={(e) => setDifficulty(e.target.value as Difficulty)}
+        className="w-full p-3 rounded-lg bg-purple-700/30 border border-purple-400/40 text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+        >
+        {Object.entries(DIFFICULTY_LEVELS).map(([key, value]) => (
+          <option key={key} value={key}>
+            {value.label} - {value.description}
+          </option>
+        ))}
+      </select>
+      ) : (
+        <p className="text-purple-300 text-center">
+          Difficulty will be set by the room creator.
+        </p>
+          )}
+          </div>
         {/* Action Buttons */}
         <div className="space-y-4">
           {/* Ready Button */}

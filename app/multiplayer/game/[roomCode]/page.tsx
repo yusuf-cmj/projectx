@@ -1,14 +1,16 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import NextImage from 'next/image';
 import { useParams, useRouter } from 'next/navigation';
 import { db } from '@/lib/firebase';
-import { ref, onValue, off, update, serverTimestamp, remove } from 'firebase/database';
+// Şu hale getir:
+import { ref, onValue, off, update, serverTimestamp } from 'firebase/database';
 import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { toast } from "sonner";
 import { Timer, Film, Gamepad2, Play, Pause, Zap } from 'lucide-react';
+import { getDifficultySettings} from '@/lib/difficulty';
 
 // Interfaces (match backend QuestionFormat)
 interface Quote {
@@ -42,6 +44,7 @@ interface RoomData {
   preloadMediaUrl?: string | null;
   gameMode?: 'normal' | 'rushmode'; // Add game mode field
   lockedPlayers?: { [questionIndex: number]: string[] }; // Add locked players field for rushmode
+  difficulty?: 'easy' | 'medium' | 'hard'; // ✅ Ekle bunu
 }
 
 // Helper to format time (MM:SS) - Copied from singleplayer
@@ -70,15 +73,14 @@ export default function MultiplayerGamePage() {
   const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const processedIndexRef = useRef<number | null>(null);
   const userId = session?.user?.id;
-
+  type DifficultyType = 'easy' | 'medium' | 'hard';
+  const difficulty: DifficultyType = roomData?.difficulty ?? "easy";
+  const difficultySettings = useMemo(() => getDifficultySettings(difficulty), [difficulty, currentQuestion?.questionText]);
   // Audio player state - Added
   const audioRef = useRef<HTMLAudioElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
-
-  // Ref to track if a room deletion timeout is already scheduled
-  const deletionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const calculateTimeLeft = (startTime: number | undefined) => {
     if (!startTime) return QUESTION_DURATION;
@@ -681,7 +683,7 @@ export default function MultiplayerGamePage() {
 
         {/* Media Area (Image or Audio) */}
         <div className="mb-5 min-h-[160px] flex flex-col items-center justify-center">
-          {currentQuestion.media?.image && (
+        {difficultySettings.showImage && currentQuestion.media?.image && (
             <div className="relative w-full max-w-lg h-40 animate-in fade-in duration-300">
               <NextImage
                 src={currentQuestion.media.image}
@@ -695,7 +697,7 @@ export default function MultiplayerGamePage() {
           )}
 
           {/* Audio Display with Custom Controls - Added */}
-          {currentQuestion.media?.voice_record && (
+          {difficultySettings.showAudio && currentQuestion.media?.voice_record && (
             <div className="w-full max-w-md flex flex-col items-center gap-3 animate-in fade-in duration-300">
               {/* Hidden Actual Audio Element */}
               <audio
