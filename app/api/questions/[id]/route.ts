@@ -66,7 +66,7 @@ export async function PUT(
 
     // 4. Veri Doğrulama (Zod)
     // FormData'dan sadece güncellenecek alanları al
-    const dataToParse: Record<string, any> = {};
+    const dataToParse: Record<string, unknown> = {};
     if (formData.has('quote')) dataToParse.quote = formData.get('quote');
     if (formData.has('character')) dataToParse.character = formData.get('character');
     if (formData.has('title')) dataToParse.title = formData.get('title');

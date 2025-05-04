@@ -134,23 +134,35 @@ export async function POST(request: Request) {
     // Oluşturulan kayda 'type' alanını ekleyerek döndür
     return NextResponse.json({ ...newQuestion, type: type }, { status: 201 });
 
-  } catch (error: unknown) {
-    console.error('Error creating question:', error);
-    // TODO: Daha detaylı hata yönetimi
+  } catch (error) {
+    // Log the detailed error
+    console.error('Error creating question (POST /api/questions):', error);
+
+    // Determine a more specific error message
     let errorMessage = 'Failed to create question';
+    let statusCode = 500;
+
     if (error instanceof z.ZodError) {
         errorMessage = 'Validation failed';
+        statusCode = 400;
+        // Optionally log validation errors specifically
+        // console.error("Validation Errors:", error.flatten().fieldErrors);
     } else if (error instanceof Error) {
-        if (error.message?.includes('upload')) {
-           errorMessage = 'File upload failed';
+        // Check if it's a GCS upload error from our custom throw
+        if (error.message?.includes('Failed to upload')) {
+           errorMessage = `File upload failed: ${error.message}`;
+           statusCode = 500; // Or maybe 400 depending on the GCS error reason
+        } else {
+           // Generic error message
+           errorMessage = error.message;
         }
-        // Genel hata mesajı için error.message kullanılabilir
-        // errorMessage = error.message;
     } else {
-        // Bilinmeyen hata tipi
+        // Unknown error type
         errorMessage = 'An unknown error occurred during question creation.';
     }
-    return NextResponse.json({ error: errorMessage }, { status: 500 });
+
+    // Return the specific error message and status code
+    return NextResponse.json({ error: errorMessage }, { status: statusCode });
   } finally {
       // prisma.$disconnect(); // Gerekirse bağlantıyı kapat (genellikle global instance için gerekmez)
   }

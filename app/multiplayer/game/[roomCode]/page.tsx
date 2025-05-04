@@ -43,7 +43,7 @@ interface RoomData {
   answers?: { [questionIndex: number]: { [playerId: string]: { answer: string; timestamp: number | object } } }; // Store answer and time
   preloadMediaUrl?: string | null;
   gameMode?: 'normal' | 'rushmode'; // Add game mode field
-  lockedPlayers?: { [questionIndex: number]: string[] }; // Add locked players field for rushmode
+  lockedPlayers?: { [questionIndex: number]: string[] | null }; // Allow null for deleting keys via update
   difficulty?: 'easy' | 'medium' | 'hard'; // ✅ Ekle bunu
 }
 
@@ -75,7 +75,7 @@ export default function MultiplayerGamePage() {
   const userId = session?.user?.id;
   type DifficultyType = 'easy' | 'medium' | 'hard';
   const difficulty: DifficultyType = roomData?.difficulty ?? "easy";
-  const difficultySettings = useMemo(() => getDifficultySettings(difficulty), [difficulty, currentQuestion?.questionText]);
+  const difficultySettings = useMemo(() => getDifficultySettings(difficulty), [difficulty]);
   // Audio player state - Added
   const audioRef = useRef<HTMLAudioElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -102,7 +102,7 @@ export default function MultiplayerGamePage() {
     const answersForCurrentQuestion = roomData.answers?.[currentIndex] ?? {};
 
     // --- SCORING LOGIC --- 
-    const scoreUpdates: { [key: string]: number } = {};
+    const scoreUpdates: { [key: string]: number | null } = {};
     const isRushMode = roomData.gameMode === 'rushmode';
 
     if (isRushMode) {

@@ -14,6 +14,7 @@ import {
   PlusCircle,
   FilePenLine,
   MailWarning,
+  Users,
 } from "lucide-react"
 import { useSession } from "next-auth/react"
 
@@ -64,6 +65,13 @@ export function AppSidebar({ onPageChange }: AppSidebarProps) {
           >
             <MailWarning className="w-5 h-5" />
             <span className="hidden md:inline">Requests</span>
+          </button>
+          <button
+            onClick={() => onPageChange('manage-users')}
+            className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-black hover:bg-purple-600/30 transition"
+          >
+            <Users className="w-5 h-5" />
+            <span className="hidden md:inline">Manage Users</span>
           </button>
         </div>
       </SidebarContent>

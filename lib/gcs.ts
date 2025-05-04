@@ -56,7 +56,6 @@ export async function uploadToGCS(
         metadata: {
           // Consider adding cacheControl: 'public, max-age=31536000' for long-term caching
         },
-        public: true, // Make the file publicly readable
         validation: 'md5', // Enable MD5 validation for data integrity
       });
 
@@ -67,10 +66,21 @@ export async function uploadToGCS(
       return `https://storage.googleapis.com/${bucketName!}/${destination}`;
 
   } catch (error: unknown) {
-     console.error(`Error uploading ${originalFilename} to GCS:`, error);
-     // Hata mesajını kontrol et
-     const errorMessage = error instanceof Error ? error.message : String(error);
-     throw new Error(`Failed to upload ${originalFilename} to Google Cloud Storage. Reason: ${errorMessage}`);
+     // Log the full error object for detailed debugging
+     console.error(`Detailed GCS Upload Error for ${originalFilename}:`, error);
+
+     // Extract a more meaningful error message from GCS error object
+     let detailMessage = 'Unknown error';
+     if (typeof error === 'object' && error !== null) {
+         if ('message' in error && typeof error.message === 'string') {
+             detailMessage = error.message;
+         } else {
+            // Fallback if no message field
+            detailMessage = JSON.stringify(error);
+         }
+     }
+
+     throw new Error(`Failed to upload ${originalFilename} to Google Cloud Storage. Reason: ${detailMessage}`);
   }
 }
 

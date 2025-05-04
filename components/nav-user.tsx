@@ -14,10 +14,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { LogOut, Lock } from "lucide-react"
+import { LogOut, Lock, UserCog } from "lucide-react"
 import { useState } from "react"
-import { signOut } from "next-auth/react"
+import { signOut, useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
+import Link from 'next/link'
 import { toast } from "sonner"
 import { PasswordChangeModal } from "./password-change-modal"
 
@@ -30,6 +31,7 @@ export function NavUser({
     avatar: string
   }
 }) {
+  const { data: session } = useSession()
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false)
   const [isLoggingOut, setIsLoggingOut] = useState(false)
   const router = useRouter()
@@ -68,6 +70,17 @@ export function NavUser({
           <DropdownMenuLabel className="text-purple-200">Account</DropdownMenuLabel>
           <DropdownMenuSeparator className="bg-purple-500/20" />
           <DropdownMenuGroup>
+            {session?.user?.role === 'admin' && (
+              <DropdownMenuItem
+                asChild
+                className="hover:bg-purple-800 focus:bg-purple-700 transition"
+              >
+                <Link href="/admin">
+                  <UserCog className="mr-2 h-4 w-4 text-purple-300" />
+                  <span>Admin Panel</span>
+                </Link>
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem
               onClick={() => setIsPasswordModalOpen(true)}
               className="hover:bg-purple-800 focus:bg-purple-700 transition"

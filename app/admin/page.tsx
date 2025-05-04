@@ -18,6 +18,7 @@ import {
 import { useState } from "react"
 import { CreateQuestionForm } from "./create/create-question-form"
 import { EditQuestionForm } from "./edit/edit-question-form"
+import ManageUsersPage from "./manage-users/page"
 
 export default function AdminDashboard() {
   const [activePage, setActivePage] = useState('dashboard')
@@ -40,6 +41,8 @@ export default function AdminDashboard() {
                   {activePage === 'dashboard' && 'Dashboard'}
                   {activePage === 'create' && 'Create Question'}
                   {activePage === 'edit' && 'Edit Question'}
+                  {activePage === 'requests' && 'Requests'}
+                  {activePage === 'manage-users' && 'Manage Users'}
                 </BreadcrumbPage>
               </BreadcrumbItem>
             </BreadcrumbList>
@@ -58,8 +61,17 @@ export default function AdminDashboard() {
             </>
           ) : activePage === 'create' ? (
             <CreateQuestionForm />
-          ) : (
+          ) : activePage === 'edit' ? (
             <EditQuestionForm />
+          ) : activePage === 'manage-users' ? (
+            <ManageUsersPage />
+          ) : activePage === 'requests' ? (
+             <div className="flex-1 rounded-xl bg-purple-800/30 shadow-md p-6">
+                 <h2 className="text-xl font-semibold text-white">Requests Page (Placeholder)</h2>
+                 {/* Add content for requests page here later */}
+            </div>
+          ) : (
+            <div>Unknown page selected</div>
           )}
         </div>
       </SidebarInset>
