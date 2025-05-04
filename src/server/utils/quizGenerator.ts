@@ -45,17 +45,17 @@ async function getRandomDistinct(
 
     // Fetch candidates based on the model using explicit calls
     if (model === 'filmQuote') {
-        // Prisma returns Array<{ [field]: string | null }> here
-        allCandidates = await prisma.filmQuote.findMany({
-            where: whereCondition as Prisma.FilmQuoteWhereInput,
-            select: { [field]: true } as Prisma.FilmQuoteSelect,
-        }) as unknown as Candidate[]; // Use type assertion workaround
+      // Prisma returns Array<{ [field]: string | null }> here
+      allCandidates = await prisma.filmQuote.findMany({
+        where: whereCondition as Prisma.FilmQuoteWhereInput,
+        select: { [field]: true } as Prisma.FilmQuoteSelect,
+      }) as unknown as Candidate[]; // Use type assertion workaround
     } else { // model === 'gameQuote'
-        // Prisma returns Array<{ [field]: string | null }> here
-        allCandidates = await prisma.gameQuote.findMany({
-            where: whereCondition as Prisma.GameQuoteWhereInput,
-            select: { [field]: true } as Prisma.GameQuoteSelect,
-        }) as unknown as Candidate[]; // Use type assertion workaround
+      // Prisma returns Array<{ [field]: string | null }> here
+      allCandidates = await prisma.gameQuote.findMany({
+        where: whereCondition as Prisma.GameQuoteWhereInput,
+        select: { [field]: true } as Prisma.GameQuoteSelect,
+      }) as unknown as Candidate[]; // Use type assertion workaround
     }
 
     console.log("--- [getRandomDistinct V5] Fetched ALL Candidates (Before JS filtering): ---");
@@ -67,7 +67,7 @@ async function getRandomDistinct(
     const filteredValues = allCandidates
       .map((item: Candidate) => item[field]) // Extract the value
       .filter((value: string | null | undefined): value is string => // Type guard to filter non-strings
-          value !== null && value !== undefined && value !== ''
+        value !== null && value !== undefined && value !== ''
       )
       .filter((value: string) => value !== excludeValue); // Filter out the specific excluded value
 
@@ -90,7 +90,7 @@ async function getRandomDistinct(
 }
 
 
-export async function createQuestion(type: 1 | 2 | 3 | 4): Promise<QuestionFormat | null> {
+export async function createQuestion(type: 1 | 2 | 3 | 4, difficulty: 'easy' | 'medium' | 'hard' = 'easy'): Promise<QuestionFormat | null> {
   try {
     // Randomly choose between film and game quotes
     const modelName = Math.random() < 0.5 ? 'filmQuote' : 'gameQuote';
@@ -98,9 +98,9 @@ export async function createQuestion(type: 1 | 2 | 3 | 4): Promise<QuestionForma
     // Explicitly call count based on modelName
     let totalQuotes = 0;
     if (modelName === 'filmQuote') {
-        totalQuotes = await prisma.filmQuote.count();
+      totalQuotes = await prisma.filmQuote.count();
     } else {
-        totalQuotes = await prisma.gameQuote.count();
+      totalQuotes = await prisma.gameQuote.count();
     }
 
     if (totalQuotes < 4 && (type === 1 || type === 2)) {
@@ -111,27 +111,47 @@ export async function createQuestion(type: 1 | 2 | 3 | 4): Promise<QuestionForma
       return null;
     }
 
-    // Fetch a random quote to base the question on
-    const skip = Math.floor(Math.random() * totalQuotes);
-
-    // Explicitly call findMany based on modelName
+    // For easy mode, we need to find a quote that has both image and voice record
+    // For medium mode, we need a quote that has at least one of them
+    // For hard mode, we just need a quote with text
     let correctQuoteData: FilmQuote | GameQuote | null = null;
-    if (modelName === 'filmQuote') {
+    let attempts = 0;
+    const maxAttempts = 10; // Limit the number of attempts to find a suitable quote
+
+    while (attempts < maxAttempts) {
+      // Fetch a random quote to base the question on
+      const skip = Math.floor(Math.random() * totalQuotes);
+
+      // Explicitly call findMany based on modelName
+      if (modelName === 'filmQuote') {
         const results = await prisma.filmQuote.findMany({ take: 1, skip: skip });
         correctQuoteData = results[0] ?? null;
-    } else {
+      } else {
         const results = await prisma.gameQuote.findMany({ take: 1, skip: skip });
         correctQuoteData = results[0] ?? null;
+      }
+
+      // Check if the quote meets the difficulty requirements
+      if (difficulty === 'easy') {
+        if (correctQuoteData?.image && correctQuoteData?.voice_record) {
+          break; // Found a suitable quote for easy mode
+        }
+      } else if (difficulty === 'medium') {
+        if (correctQuoteData?.image || correctQuoteData?.voice_record) {
+          break; // Found a suitable quote for medium mode
+        }
+      } else if (difficulty === 'hard') {
+        if (correctQuoteData?.quote) {
+          break; // Found a suitable quote for hard mode
+        }
+      }
+
+      attempts++;
+      correctQuoteData = null;
     }
 
-    // --- DEBUG LOGGING --- >
-    console.log("\n--- Fetched Correct Quote Data ---");
-    console.log(correctQuoteData);
-    console.log("------------------------------------\n");
-    // <--- DEBUG LOGGING ---
-
     if (!correctQuoteData) {
-      console.error("Could not fetch a random quote.");
+      console.error("Could not fetch a suitable quote.");
       return null;
     }
 
@@ -141,66 +161,110 @@ export async function createQuestion(type: 1 | 2 | 3 | 4): Promise<QuestionForma
     const media: QuestionFormat['media'] = {};
     const neededIncorrectOptions = 3; // We need 3 incorrect options
 
-    switch (type) {
-      // 1: Guess Quote from Image
+    // For medium mode, randomly choose between image and voice record if both are available
+    const hasImage = !!correctQuoteData.image;
+    const hasVoice = !!correctQuoteData.voice_record;
+    const useImage = difficulty === 'medium' && hasImage && (!hasVoice || Math.random() < 0.5);
+
+    // For hard mode, we'll use a simplified type system (1: character, 2: recipient, 3: title)
+    const hardModeType = difficulty === 'hard' ? Math.floor(Math.random() * 3) + 1 : type;
+
+    switch (hardModeType) {
+      // 1: Guess Character from Quote
       case 1: {
-        if (!correctQuoteData.image) return null;
-        correctAnswer = correctQuoteData.quote;
-        // Call getRandomDistinct with correct field name as string literal
-        const incorrectOptions = await getRandomDistinct(modelName, 'quote', neededIncorrectOptions, correctQuoteData.id, correctAnswer);
+        if (!correctQuoteData.quote) return null;
+        correctAnswer = correctQuoteData.character;
+        const incorrectOptions = await getRandomDistinct(modelName, 'character', neededIncorrectOptions, correctQuoteData.id, correctAnswer);
         if (incorrectOptions.length < neededIncorrectOptions) {
-          console.warn(`Warning: Could only find ${incorrectOptions.length} distinct incorrect quotes for type 1.`);
+          console.warn(`Warning: Could only find ${incorrectOptions.length} distinct incorrect characters for type 1.`);
         }
         options = _.shuffle([correctAnswer, ...incorrectOptions]);
-        questionText = `In this scene, what does ${correctQuoteData.character || 'the character'} say to ${correctQuoteData.to ? `'${correctQuoteData.to}'` : 'the other character'}?`;
-        media.image = correctQuoteData.image;
+        questionText = `Who says "${correctQuoteData.quote}"?`;
+        media.quote = correctQuoteData.quote;
+        if (difficulty === 'easy') {
+          media.image = correctQuoteData.image;
+          media.voice_record = correctQuoteData.voice_record;
+        } else if (difficulty === 'medium') {
+          if (useImage) {
+            media.image = correctQuoteData.image;
+          } else {
+            media.voice_record = correctQuoteData.voice_record;
+          }
+        }
         break;
       }
 
-      // 2: Guess 'To' from Image/Quote
+      // 2: Guess Recipient from Quote
       case 2: {
-        if (!correctQuoteData.image || !correctQuoteData.to) return null;
+        if (!correctQuoteData.quote || !correctQuoteData.to) return null;
         correctAnswer = correctQuoteData.to;
-        // Call getRandomDistinct with correct field name as string literal
         const incorrectOptions = await getRandomDistinct(modelName, 'to', neededIncorrectOptions, correctQuoteData.id, correctAnswer);
         if (incorrectOptions.length < neededIncorrectOptions) {
           console.warn(`Warning: Could only find ${incorrectOptions.length} distinct incorrect 'to' values for type 2.`);
         }
         options = _.shuffle([correctAnswer, ...incorrectOptions]);
-        questionText = `In this scene, who does ${correctQuoteData.character || 'the character'} say "${correctQuoteData.quote}" to?`;
-        media.image = correctQuoteData.image;
+        questionText = `Who is "${correctQuoteData.quote}" said to?`;
+        media.quote = correctQuoteData.quote;
+        if (difficulty === 'easy') {
+          media.image = correctQuoteData.image;
+          media.voice_record = correctQuoteData.voice_record;
+        } else if (difficulty === 'medium') {
+          if (useImage) {
+            media.image = correctQuoteData.image;
+          } else {
+            media.voice_record = correctQuoteData.voice_record;
+          }
+        }
         break;
       }
 
-      // 3: Guess Character from Quote/Voice
+      // 3: Guess Title from Quote
       case 3: {
-        if (!correctQuoteData.voice_record && !correctQuoteData.quote) return null;
-        correctAnswer = correctQuoteData.character;
-        // Call getRandomDistinct with correct field name as string literal
-        const incorrectOptions = await getRandomDistinct(modelName, 'character', neededIncorrectOptions, correctQuoteData.id, correctAnswer);
+        if (!correctQuoteData.quote) return null;
+        correctAnswer = correctQuoteData.title;
+        const incorrectOptions = await getRandomDistinct(modelName, 'title', neededIncorrectOptions, correctQuoteData.id, correctAnswer);
         if (incorrectOptions.length < neededIncorrectOptions) {
-          console.warn(`Warning: Could only find ${incorrectOptions.length} distinct incorrect characters for type 3.`);
+          console.warn(`Warning: Could only find ${incorrectOptions.length} distinct incorrect titles for type 3.`);
         }
         options = _.shuffle([correctAnswer, ...incorrectOptions]);
-        questionText = `Who says ${correctQuoteData.voice_record ? 'this voice recording' : 'this quote'}?`;
-        media.voice_record = correctQuoteData.voice_record;
+        questionText = `Which ${modelName === 'filmQuote' ? 'movie' : 'game'} is this quote from: "${correctQuoteData.quote}"?`;
         media.quote = correctQuoteData.quote;
+        if (difficulty === 'easy') {
+          media.image = correctQuoteData.image;
+          media.voice_record = correctQuoteData.voice_record;
+        } else if (difficulty === 'medium') {
+          if (useImage) {
+            media.image = correctQuoteData.image;
+          } else {
+            media.voice_record = correctQuoteData.voice_record;
+          }
+        }
         break;
       }
 
-      // 4: Guess Title from Quote/Voice
+      // Original question types for easy and medium modes
       case 4: {
+        if (difficulty === 'hard') return null; // Skip type 4 in hard mode
         if (!correctQuoteData.voice_record && !correctQuoteData.quote) return null;
         correctAnswer = correctQuoteData.title;
-        // Call getRandomDistinct with correct field name as string literal
         const incorrectOptions = await getRandomDistinct(modelName, 'title', neededIncorrectOptions, correctQuoteData.id, correctAnswer);
         if (incorrectOptions.length < neededIncorrectOptions) {
           console.warn(`Warning: Could only find ${incorrectOptions.length} distinct incorrect titles for type 4.`);
         }
         options = _.shuffle([correctAnswer, ...incorrectOptions]);
         questionText = `Which ${modelName === 'filmQuote' ? 'movie' : 'game'} is ${correctQuoteData.voice_record ? 'this voice recording' : 'this quote'} from?`;
-        media.voice_record = correctQuoteData.voice_record;
-        media.quote = correctQuoteData.quote;
+        if (difficulty === 'easy') {
+          media.image = correctQuoteData.image;
+          media.voice_record = correctQuoteData.voice_record;
+          media.quote = correctQuoteData.quote;
+        } else if (difficulty === 'medium') {
+          if (useImage) {
+            media.image = correctQuoteData.image;
+          } else {
+            media.voice_record = correctQuoteData.voice_record;
+            media.quote = correctQuoteData.quote;
+          }
+        }
         break;
       }
 
@@ -221,7 +285,7 @@ export async function createQuestion(type: 1 | 2 | 3 | 4): Promise<QuestionForma
       options,
       correctAnswer,
       media,
-      type,
+      type: hardModeType,
       source: modelName === 'filmQuote' ? 'film' : 'game'
     };
 

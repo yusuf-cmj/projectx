@@ -49,7 +49,7 @@ export default function LobbyPage() {
   const roomCode = typeof params?.roomCode === 'string' ? params.roomCode : null;
   const { data: session, status: sessionStatus } = useSession(); // Get session
   // const { user } = useAuth(); // Get current user if available
-  
+
   const [difficulty, setDifficulty] = useState<Difficulty>('easy');
   const [roomData, setRoomData] = useState<RoomData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -157,7 +157,7 @@ export default function LobbyPage() {
       for (let i = 0; i < numberOfQuestions; i++) {
         const randomType = Math.floor(Math.random() * 4) + 1 as 1 | 2 | 3 | 4;
         console.log(`Fetching question ${i + 1} (type ${randomType})...`);
-        const response = await fetch(`/api/singleplayer-question?type=${randomType}`);
+        const response = await fetch(`/api/singleplayer-question?type=${randomType}&difficulty=${difficulty}`);
 
         if (!response.ok) {
           throw new Error(`API Error (Type ${randomType}): ${response.status} ${response.statusText}`);
@@ -313,27 +313,27 @@ export default function LobbyPage() {
           )}
         </div>
         <div className="bg-purple-800/20 backdrop-blur-sm p-6 rounded-xl border border-purple-400/20 mb-6">
-        <h2 className="text-2xl font-semibold mb-4 text-white tracking-wide flex items-center gap-2">
-        <span className="animate-bounce">⚙️</span> Difficulty
-        </h2>
-        {userId === roomData?.creatorId ? (
-        <select
-        value={difficulty}
-        onChange={(e) => setDifficulty(e.target.value as Difficulty)}
-        className="w-full p-3 rounded-lg bg-purple-700/30 border border-purple-400/40 text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
-        >
-        {Object.entries(DIFFICULTY_LEVELS).map(([key, value]) => (
-          <option key={key} value={key}>
-            {value.label} - {value.description}
-          </option>
-        ))}
-      </select>
-      ) : (
-        <p className="text-purple-300 text-center">
-          Difficulty will be set by the room creator.
-        </p>
+          <h2 className="text-2xl font-semibold mb-4 text-white tracking-wide flex items-center gap-2">
+            <span className="animate-bounce">⚙️</span> Difficulty
+          </h2>
+          {userId === roomData?.creatorId ? (
+            <select
+              value={difficulty}
+              onChange={(e) => setDifficulty(e.target.value as Difficulty)}
+              className="w-full p-3 rounded-lg bg-purple-700/30 border border-purple-400/40 text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+            >
+              {Object.entries(DIFFICULTY_LEVELS).map(([key, value]) => (
+                <option key={key} value={key}>
+                  {value.label} - {value.description}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <p className="text-purple-300 text-center">
+              Difficulty will be set by the room creator.
+            </p>
           )}
-          </div>
+        </div>
         {/* Action Buttons */}
         <div className="space-y-4">
           {/* Ready Button */}
