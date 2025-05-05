@@ -294,229 +294,255 @@ export function EditQuestionForm() {
   }
 
   if (isLoading) {
-      return <div className="flex justify-center items-center h-40"><Loader2 className="h-8 w-8 animate-spin" /></div>;
+    return (
+      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
+        <div className="bg-gray-900 p-8 rounded-2xl border border-gray-800 shadow-lg text-center">
+          <div className="flex flex-col items-center gap-4">
+            <div className="text-white text-xl animate-pulse flex items-center gap-2">
+              <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+              Loading quotes...
+            </div>
+            <div className="text-gray-400 text-sm">Fetching quote data</div>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
     <div className="w-full">
-      <div className="rounded-md border">
+      <div className="rounded-xl border border-gray-800 bg-gray-900 shadow-lg">
         <Table>
           <TableHeader>
-            <TableRow>
-              <TableHead>Type</TableHead>
-              <TableHead>Quote</TableHead>
-              <TableHead>Character</TableHead>
-              <TableHead>Title</TableHead>
-              <TableHead>Media</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+            <TableRow className="border-gray-800 hover:bg-gray-800">
+              <TableHead className="text-gray-300">Type</TableHead>
+              <TableHead className="text-gray-300">Quote</TableHead>
+              <TableHead className="text-gray-300">Character</TableHead>
+              <TableHead className="text-gray-300">Title</TableHead>
+              <TableHead className="text-gray-300">Media</TableHead>
+              <TableHead className="text-right text-gray-300">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {quotes.length === 0 && !isLoading ? (
-                <TableRow>
-                    <TableCell colSpan={6} className="text-center h-24">
-                        No quotes found.
-                    </TableCell>
-                </TableRow>
+              <TableRow>
+                <TableCell colSpan={6} className="text-center h-24 text-gray-300">
+                  No quotes found.
+                </TableCell>
+              </TableRow>
             ) : (
-                quotes.map((quote) => (
-                  <TableRow key={`${quote.type}-${quote.id}`}>
-                    <TableCell className="font-medium capitalize">{quote.type}</TableCell>
-                    <TableCell className="max-w-[200px] truncate" title={quote.quote}>{quote.quote}</TableCell>
-                    <TableCell>{quote.character}</TableCell>
-                    <TableCell>{quote.title}</TableCell>
-                    <TableCell>
-                      <div className="flex gap-2">
-                        {quote.voice_record && <Music className="w-4 h-4 text-blue-500" />}
-                        {quote.image && <ImageIcon className="w-4 h-4 text-green-500" />}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleEditClick(quote)}
-                          disabled={isSubmitting}
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDeleteClick(quote)}
-                          disabled={isSubmitting}
-                        >
-                          <Trash2 className="w-4 h-4 text-red-600 hover:text-red-700" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
+              quotes.map((quote) => (
+                <TableRow key={`${quote.type}-${quote.id}`} className="border-gray-800 hover:bg-gray-800">
+                  <TableCell className="font-medium capitalize text-white">{quote.type}</TableCell>
+                  <TableCell className="max-w-[200px] truncate text-gray-300" title={quote.quote}>{quote.quote}</TableCell>
+                  <TableCell className="text-gray-300">{quote.character}</TableCell>
+                  <TableCell className="text-gray-300">{quote.title}</TableCell>
+                  <TableCell>
+                    <div className="flex gap-2">
+                      {quote.voice_record && <Music className="w-4 h-4 text-gray-400" />}
+                      {quote.image && <ImageIcon className="w-4 h-4 text-gray-400" />}
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleEditClick(quote)}
+                        disabled={isSubmitting}
+                        className="hover:bg-gray-800 text-gray-300"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDeleteClick(quote)}
+                        disabled={isSubmitting}
+                        className="hover:bg-gray-800 text-red-400"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))
             )}
           </TableBody>
         </Table>
       </div>
 
-      <Dialog open={showEditDialog} onOpenChange={(open) => !open && closeEditDialog()}>
-        <DialogContent className="max-w-2xl">
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent className="bg-gray-900 border-gray-800 text-white">
           <DialogHeader>
-            <DialogTitle>Edit Quote</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-white">Edit Quote</DialogTitle>
+            <DialogDescription className="text-gray-300">
               Make changes to the quote here. Click save when you are done.
             </DialogDescription>
           </DialogHeader>
           {editedQuote && (
             <form onSubmit={handleSaveEdit}>
-                <div className="grid gap-4 py-4">
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <label className="text-right">Type</label>
-                        <Input value={editedQuote.type} disabled className="col-span-3 capitalize" />
-                     </div>
-                    <div className="grid gap-2">
-                        <label>Quote</label>
-                        <Textarea
-                            value={editedQuote.quote}
-                            onChange={(e) =>
-                                setEditedQuote(prev => prev ? { ...prev, quote: e.target.value } : null)
-                            }
-                            disabled={isSubmitting}
-                            required
-                        />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="grid gap-2">
-                        <label>Character</label>
-                        <Input
-                            value={editedQuote.character}
-                            onChange={(e) =>
-                            setEditedQuote(prev => prev ? { ...prev, character: e.target.value } : null)
-                            }
-                            disabled={isSubmitting}
-                            required
-                        />
-                        </div>
-                        <div className="grid gap-2">
-                        <label>Title</label>
-                        <Input
-                            value={editedQuote.title}
-                            onChange={(e) =>
-                            setEditedQuote(prev => prev ? { ...prev, title: e.target.value } : null)
-                            }
-                            disabled={isSubmitting}
-                            required
-                        />
-                        </div>
-                    </div>
-                    <div className="grid gap-2">
-                        <label>To (Optional)</label>
-                        <Input
-                            value={editedQuote?.to ?? ''}
-                            onChange={(e) =>
-                                setEditedQuote(prev => prev ? { ...prev, to: e.target.value === '' ? null : e.target.value } : null)
-                            }
-                             disabled={isSubmitting}
-                        />
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
-                        <div className="grid gap-2 content-start">
-                            <label>Voice Record</label>
-                            <Input
-                                type="file"
-                                accept="audio/*"
-                                onChange={handleAudioFileChange}
-                                disabled={isSubmitting}
-                            />
-                             {(audioPreview || (editedQuote.voice_record && !editedQuote.clearVoice)) && (
-                               <div className="relative bg-gray-50 p-4 rounded-md border border-gray-200">
-                                <audio
-                                    controls
-                                    src={audioPreview || editedQuote.voice_record || ''}
-                                    className="w-full"
-                                />
-                                <button
-                                    type="button"
-                                    onClick={clearAudio}
-                                    className="absolute -top-2 -right-2 p-1 bg-red-500 rounded-full text-white hover:bg-red-600 shadow-md"
-                                    aria-label="Clear or remove audio"
-                                    disabled={isSubmitting}
-                                >
-                                    <X className="w-4 h-4" />
-                                </button>
-                               </div>
-                             )}
-                             {!audioPreview && (!editedQuote.voice_record || editedQuote.clearVoice) && (
-                                <div className="bg-gray-100 p-4 rounded-md border border-gray-200 h-[68px] flex items-center justify-center">
-                                    <span className="text-sm text-gray-500">No audio</span>
-                                </div>
-                             )}
-                        </div>
-
-                        <div className="grid gap-2 content-start">
-                             <label>Scene Image</label>
-                             <Input
-                                type="file"
-                                accept="image/*"
-                                onChange={handleImageFileChange}
-                                disabled={isSubmitting}
-                             />
-                             {(imagePreview || (editedQuote.image && !editedQuote.clearImage)) && (
-                               <div className="relative group bg-gray-50 p-4 rounded-md border border-gray-200 aspect-video flex items-center justify-center">
-                                <Image
-                                    src={imagePreview || editedQuote.image || ''}
-                                    alt="Preview"
-                                    layout="fill"
-                                    objectFit="contain"
-                                    className="rounded-md cursor-pointer transition-opacity group-hover:opacity-70"
-                                    unoptimized={true}
-                                    onClick={openImageModal}
-                                    onError={(e) => { 
-                                        e.currentTarget.style.display = 'none'; 
-                                    }}
-                                />
-                                <div
-                                    className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer rounded-md"
-                                    onClick={openImageModal}
-                                >
-                                    <Eye className="w-10 h-10 text-white" />
-                                </div>
-                                <button
-                                    type="button"
-                                    onClick={(e) => { e.stopPropagation(); clearImage(); }}
-                                    className="absolute -top-2 -right-2 z-10 p-1 bg-red-500 rounded-full text-white hover:bg-red-600 shadow-md"
-                                    aria-label="Clear or remove image"
-                                    disabled={isSubmitting}
-                                >
-                                    <X className="w-4 h-4" />
-                                </button>
-                               </div>
-                            )}
-                             { !imagePreview && (!editedQuote.image || editedQuote.clearImage) && (
-                                <div className="bg-gray-100 p-4 rounded-md border border-gray-200 aspect-video flex items-center justify-center">
-                                    <ImageIcon className="w-12 h-12 text-gray-400" />
-                                </div>
-                             )}
-                        </div>
-                    </div>
+              <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <label className="text-right text-gray-300">Type</label>
+                  <Input value={editedQuote.type} disabled className="col-span-3 capitalize bg-gray-800 border-gray-700 text-white" />
                 </div>
-                <DialogFooter>
-                    <Button variant="outline" onClick={closeEditDialog} type="button" disabled={isSubmitting}>
-                        Cancel
-                    </Button>
-                    <Button type="submit" disabled={isSubmitting}>
-                        {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</> : 'Save changes'}
-                    </Button>
-                </DialogFooter>
+                <div className="grid gap-2">
+                  <label className="text-gray-300">Quote</label>
+                  <Textarea
+                    value={editedQuote.quote}
+                    onChange={(e) =>
+                      setEditedQuote(prev => prev ? { ...prev, quote: e.target.value } : null)
+                    }
+                    disabled={isSubmitting}
+                    required
+                    className="bg-gray-800 border-gray-700 text-white"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <label className="text-gray-300">Character</label>
+                  <Input
+                    value={editedQuote.character}
+                    onChange={(e) =>
+                      setEditedQuote(prev => prev ? { ...prev, character: e.target.value } : null)
+                    }
+                    disabled={isSubmitting}
+                    required
+                    className="bg-gray-800 border-gray-700 text-white"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <label className="text-gray-300">Title</label>
+                  <Input
+                    value={editedQuote.title}
+                    onChange={(e) =>
+                      setEditedQuote(prev => prev ? { ...prev, title: e.target.value } : null)
+                    }
+                    disabled={isSubmitting}
+                    required
+                    className="bg-gray-800 border-gray-700 text-white"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <label className="text-gray-300">To (Optional)</label>
+                  <Input
+                    value={editedQuote?.to ?? ''}
+                    onChange={(e) =>
+                      setEditedQuote(prev => prev ? { ...prev, to: e.target.value === '' ? null : e.target.value } : null)
+                    }
+                    disabled={isSubmitting}
+                    className="bg-gray-800 border-gray-700 text-white"
+                  />
+                </div>
+
+                <div className="grid gap-2 content-start">
+                  <label className="text-gray-300">Voice Record</label>
+                  <Input
+                    type="file"
+                    accept="audio/*"
+                    onChange={handleAudioFileChange}
+                    disabled={isSubmitting}
+                    className="bg-gray-800 border-gray-700 text-white"
+                  />
+                  {(audioPreview || (editedQuote.voice_record && !editedQuote.clearVoice)) && (
+                    <div className="relative bg-gray-800 p-4 rounded-md border border-gray-700">
+                      <audio
+                        controls
+                        src={audioPreview || editedQuote.voice_record || ''}
+                        className="w-full"
+                      />
+                      <button
+                        type="button"
+                        onClick={clearAudio}
+                        className="absolute -top-2 -right-2 p-1 bg-red-500/20 rounded-full text-red-400 hover:bg-red-500/30 hover:text-white shadow-md"
+                        aria-label="Clear or remove audio"
+                        disabled={isSubmitting}
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
+                  {!audioPreview && (!editedQuote.voice_record || editedQuote.clearVoice) && (
+                    <div className="bg-gray-800 p-4 rounded-md border border-gray-700 h-[68px] flex items-center justify-center">
+                      <span className="text-sm text-gray-400">No audio</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="grid gap-2 content-start">
+                  <label className="text-gray-300">Scene Image</label>
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageFileChange}
+                    disabled={isSubmitting}
+                    className="bg-gray-800 border-gray-700 text-white"
+                  />
+                  {(imagePreview || (editedQuote.image && !editedQuote.clearImage)) && (
+                    <div className="relative group bg-gray-800 p-4 rounded-md border border-gray-700 aspect-video flex items-center justify-center">
+                      <Image
+                        src={imagePreview || editedQuote.image || ''}
+                        alt="Preview"
+                        layout="fill"
+                        objectFit="contain"
+                        className="rounded-md cursor-pointer transition-opacity group-hover:opacity-70"
+                        unoptimized={true}
+                        onClick={openImageModal}
+                        onError={(e) => { 
+                          e.currentTarget.style.display = 'none'; 
+                        }}
+                      />
+                      <div
+                        className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer rounded-md"
+                        onClick={openImageModal}
+                      >
+                        <Eye className="w-10 h-10 text-white" />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); clearImage(); }}
+                        className="absolute -top-2 -right-2 z-10 p-1 bg-red-500/20 rounded-full text-red-400 hover:bg-red-500/30 hover:text-white shadow-md"
+                        aria-label="Clear or remove image"
+                        disabled={isSubmitting}
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
+                  {!imagePreview && (!editedQuote.image || editedQuote.clearImage) && (
+                    <div className="bg-gray-800 p-4 rounded-md border border-gray-700 aspect-video flex items-center justify-center">
+                      <ImageIcon className="w-12 h-12 text-gray-400" />
+                    </div>
+                  )}
+                </div>
+              </div>
+              <DialogFooter>
+                <Button 
+                  variant="outline" 
+                  onClick={closeEditDialog} 
+                  type="button" 
+                  disabled={isSubmitting}
+                  className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white"
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  type="submit" 
+                  disabled={isSubmitting}
+                  className="bg-gray-700 hover:bg-gray-600"
+                >
+                  {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</> : 'Save changes'}
+                </Button>
+              </DialogFooter>
             </form>
           )}
         </DialogContent>
       </Dialog>
 
       <Dialog open={isImageModalOpen} onOpenChange={setIsImageModalOpen}>
-        <DialogContent className="sm:max-w-[600px] p-0">
-          <DialogHeader className="p-4 border-b">
-            <DialogTitle>Image Preview</DialogTitle>
+        <DialogContent className="bg-gray-900 border-gray-800 text-white sm:max-w-[600px] p-0">
+          <DialogHeader className="p-4 border-b border-gray-800">
+            <DialogTitle className="text-white">Image Preview</DialogTitle>
           </DialogHeader>
           <div className="p-4 flex justify-center items-center">
             {(imagePreview || (editedQuote?.image && !editedQuote?.clearImage)) && (
@@ -534,18 +560,28 @@ export function EditQuestionForm() {
       </Dialog>
 
       <Dialog open={showDeleteDialog} onOpenChange={(open) => !open && closeDeleteDialog()}>
-        <DialogContent>
+        <DialogContent className="bg-gray-900 border-gray-800 text-white">
           <DialogHeader>
-            <DialogTitle>Delete Quote</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-white">Delete Quote</DialogTitle>
+            <DialogDescription className="text-gray-300">
               Are you sure you want to delete the quote &quot;{selectedQuoteForDelete?.quote.substring(0, 50)}...&quot;? This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={closeDeleteDialog} disabled={isSubmitting}>
+            <Button 
+              variant="outline" 
+              onClick={closeDeleteDialog} 
+              disabled={isSubmitting}
+              className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white"
+            >
               Cancel
             </Button>
-            <Button variant="destructive" onClick={handleConfirmDelete} disabled={isSubmitting}>
+            <Button 
+              variant="destructive" 
+              onClick={handleConfirmDelete} 
+              disabled={isSubmitting}
+              className="bg-red-500/20 text-red-400 hover:bg-red-500/30 hover:text-white"
+            >
               {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Deleting...</> : 'Delete'}
             </Button>
           </DialogFooter>

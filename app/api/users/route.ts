@@ -4,13 +4,24 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 
 export async function GET() {
-  // 1. Yetkilendirme Kontrolü (Admin mi?)
-  const session = await getServerSession(authOptions);
-  if (!session || session.user?.role !== 'admin') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
   try {
+    // 1. Yetkilendirme Kontrolü (Admin mi?)
+    const session = await getServerSession(authOptions);
+    
+    if (!session) {
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    }
+
+    // Check if user exists in database and has admin role
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { role: true }
+    });
+
+    if (!user || user.role !== 'admin') {
+      return NextResponse.json({ error: 'Not authorized' }, { status: 403 });
+    }
+
     // 2. Kullanıcıları veritabanından çek (şifre hariç)
     const users = await prisma.user.findMany({
       select: {

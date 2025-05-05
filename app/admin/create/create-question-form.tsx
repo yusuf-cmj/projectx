@@ -225,9 +225,7 @@ export function CreateQuestionForm() {
   }
 
   return (
-    <div className="w-full max-w-2xl mx-auto">
-      <h1 className="text-2xl font-bold mb-6">Create New Quote</h1>
-      
+    <div className="w-full">
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <FormField
@@ -235,16 +233,16 @@ export function CreateQuestionForm() {
             name="type"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Type</FormLabel>
+                <FormLabel className="text-gray-300">Type</FormLabel>
                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                   <FormControl>
-                    <SelectTrigger>
+                    <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
                       <SelectValue placeholder="Select type" />
                     </SelectTrigger>
                   </FormControl>
-                  <SelectContent>
-                    <SelectItem value="film">Film Quote</SelectItem>
-                    <SelectItem value="game">Game Quote</SelectItem>
+                  <SelectContent className="bg-gray-900 border-gray-800">
+                    <SelectItem value="film" className="text-gray-300 hover:bg-gray-800">Film Quote</SelectItem>
+                    <SelectItem value="game" className="text-gray-300 hover:bg-gray-800">Game Quote</SelectItem>
                   </SelectContent>
                 </Select>
                 <FormMessage />
@@ -257,11 +255,11 @@ export function CreateQuestionForm() {
             name="quote"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Quote</FormLabel>
+                <FormLabel className="text-gray-300">Quote</FormLabel>
                 <FormControl>
                   <Textarea
                     placeholder="Enter the quote"
-                    className="resize-none"
+                    className="resize-none bg-gray-800 border-gray-700 text-white"
                     {...field}
                   />
                 </FormControl>
@@ -275,9 +273,13 @@ export function CreateQuestionForm() {
             name="character"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Character</FormLabel>
+                <FormLabel className="text-gray-300">Character</FormLabel>
                 <FormControl>
-                  <Input placeholder="Enter character name" {...field} />
+                  <Input 
+                    placeholder="Enter character name" 
+                    className="bg-gray-800 border-gray-700 text-white"
+                    {...field} 
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -289,9 +291,13 @@ export function CreateQuestionForm() {
             name="title"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Title</FormLabel>
+                <FormLabel className="text-gray-300">Title</FormLabel>
                 <FormControl>
-                  <Input placeholder="Enter movie/game title" {...field} />
+                  <Input 
+                    placeholder="Enter movie/game title" 
+                    className="bg-gray-800 border-gray-700 text-white"
+                    {...field} 
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -303,9 +309,13 @@ export function CreateQuestionForm() {
             name="to"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>To (Optional)</FormLabel>
+                <FormLabel className="text-gray-300">To (Optional)</FormLabel>
                 <FormControl>
-                  <Input placeholder="Who is the quote directed to?" {...field} />
+                  <Input 
+                    placeholder="Who is the quote directed to?" 
+                    className="bg-gray-800 border-gray-700 text-white"
+                    {...field} 
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -318,18 +328,19 @@ export function CreateQuestionForm() {
               name="voice_record"
               render={({ field: { value, ...field } }) => (
                 <FormItem>
-                  <FormLabel>Voice Record (Optional)</FormLabel>
+                  <FormLabel className="text-gray-300">Voice Record (Optional)</FormLabel>
                   <FormControl>
                     <div className="space-y-2">
                       <Input
                         type="file"
                         accept=".mp3,.wav"
+                        className="bg-gray-800 border-gray-700 text-white"
                         {...field}
                         onChange={handleAudioChange}
                         disabled={isSubmitting}
                       />
                       {(audioPreview || value) && (
-                        <div className="relative bg-gray-50 p-4 rounded-md border border-gray-200">
+                        <div className="relative bg-gray-800 p-4 rounded-md border border-gray-700">
                           <audio
                             controls
                             src={audioPreview || (value instanceof File ? URL.createObjectURL(value) : undefined)}
@@ -338,7 +349,7 @@ export function CreateQuestionForm() {
                           <button
                             type="button"
                             onClick={clearAudioPreview}
-                            className="absolute -top-2 -right-2 p-1 bg-red-500 rounded-full text-white hover:bg-red-600 shadow-md"
+                            className="absolute -top-2 -right-2 p-1 bg-red-500/20 rounded-full text-red-400 hover:bg-red-500/30 hover:text-white shadow-md"
                             disabled={isSubmitting}
                             aria-label="Clear audio"
                           >
@@ -358,18 +369,19 @@ export function CreateQuestionForm() {
               name="image"
               render={({ field: { value, ...field } }) => (
                 <FormItem>
-                  <FormLabel>Scene Image (Optional)</FormLabel>
+                  <FormLabel className="text-gray-300">Scene Image (Optional)</FormLabel>
                   <FormControl>
                     <div className="space-y-2">
                       <Input
                         type="file"
                         accept=".jpg,.jpeg,.png"
+                        className="bg-gray-800 border-gray-700 text-white"
                         {...field}
                         onChange={handleImageChange}
                         disabled={isSubmitting}
                       />
                       {(imagePreview || value) && (
-                        <div className="relative group bg-gray-50 p-4 rounded-md border border-gray-200">
+                        <div className="relative group bg-gray-800 p-4 rounded-md border border-gray-700">
                           <Image
                             src={imagePreview || (value instanceof File ? URL.createObjectURL(value) : undefined) || ''}
                             alt="Preview"
@@ -382,7 +394,7 @@ export function CreateQuestionForm() {
                           <div 
                             className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer rounded-md"
                             onClick={openImageModal}
-                           >
+                          >
                             <Eye className="w-10 h-10 text-white" />
                           </div>
                           <button
@@ -391,7 +403,7 @@ export function CreateQuestionForm() {
                               e.stopPropagation();
                               clearImagePreview();
                             }}
-                            className="absolute -top-2 -right-2 z-10 p-1 bg-red-500 rounded-full text-white hover:bg-red-600 shadow-md"
+                            className="absolute -top-2 -right-2 z-10 p-1 bg-red-500/20 rounded-full text-red-400 hover:bg-red-500/30 hover:text-white shadow-md"
                             aria-label="Clear image"
                             disabled={isSubmitting}
                           >
@@ -413,10 +425,15 @@ export function CreateQuestionForm() {
               variant="outline"
               onClick={handleCancel}
               disabled={isSubmitting}
+              className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white"
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={isSubmitting}>
+            <Button 
+              type="submit" 
+              disabled={isSubmitting}
+              className="bg-gray-700 hover:bg-gray-600"
+            >
               {isSubmitting ? 'Creating...' : 'Create Quote'}
             </Button>
           </div>
@@ -424,9 +441,9 @@ export function CreateQuestionForm() {
       </Form>
 
       <Dialog open={isImageModalOpen} onOpenChange={setIsImageModalOpen}>
-        <DialogContent className="sm:max-w-[600px] p-0">
-          <DialogHeader className="p-4 border-b">
-            <DialogTitle>Image Preview</DialogTitle>
+        <DialogContent className="bg-gray-900 border-gray-800 text-white sm:max-w-[600px] p-0">
+          <DialogHeader className="p-4 border-b border-gray-800">
+            <DialogTitle className="text-white">Image Preview</DialogTitle>
           </DialogHeader>
           <div className="p-4 flex justify-center items-center">
             {imagePreview && (
@@ -442,7 +459,6 @@ export function CreateQuestionForm() {
           </div>
         </DialogContent>
       </Dialog>
-
     </div>
   )
 } 
