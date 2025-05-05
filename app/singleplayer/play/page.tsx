@@ -1,6 +1,7 @@
 'use client'
-
-import { useEffect, useState, useCallback, useRef } from 'react'
+import { getDifficultySettings } from '@/lib/difficulty';
+import { useSearchParams } from 'next/navigation';
+import { useEffect, useState, useCallback, useRef, useMemo } from 'react'
 import NextImage from 'next/image'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
@@ -37,8 +38,19 @@ const formatTime = (seconds: number): string => {
 };
 
 export default function SingleplayerPlayPage() {
+  type DifficultyType = 'easy' | 'medium' | 'hard';
+  const searchParams = useSearchParams();
+  const rawDifficulty = searchParams?.get("difficulty") ?? "";
+  const difficulty: DifficultyType = ["easy", "medium", "hard"].includes(rawDifficulty)
+    ? (rawDifficulty as DifficultyType)
+    : "easy";
+    
   const router = useRouter()
   const [question, setQuestion] = useState<Question | null>(null)
+  const difficultySettings = useMemo(
+    () => getDifficultySettings(difficulty, question?.media),
+    [difficulty, question?.media]
+  );
   const [questionIndex, setQuestionIndex] = useState(1)
   const [selectedOption, setSelectedOption] = useState<string | null>(null)
   const [showNext, setShowNext] = useState(false)
@@ -307,7 +319,7 @@ export default function SingleplayerPlayPage() {
         </div>
 
         <div className="mb-5 min-h-[160px] flex flex-col items-center justify-center">
-          {question.media?.image && (
+          {difficultySettings.showImage && question.media?.image && (
             <div className="relative w-full max-w-lg h-40 animate-in fade-in duration-300">
               <NextImage 
                 src={question.media.image} 
@@ -319,7 +331,7 @@ export default function SingleplayerPlayPage() {
               />
             </div>
           )}
-          {question.media?.voice_record && (
+          {difficultySettings.showAudio && question.media?.voice_record && (
             <div className="w-full max-w-md flex flex-col items-center gap-3 animate-in fade-in duration-300">
               <audio
                 ref={audioRef}
@@ -334,7 +346,7 @@ export default function SingleplayerPlayPage() {
               >
                 Your browser does not support the audio element.
               </audio>
-              {question.media.quote && (
+              {difficultySettings.showAudio && question.media.quote && (
                  <p className="text-center italic text-sm text-purple-200 mb-1">&quot;{question.media.quote}&quot;</p>
               )}
               <div className="flex items-center gap-4 w-full bg-purple-900/30 p-3 rounded-lg">

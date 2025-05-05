@@ -75,7 +75,7 @@ export default function MultiplayerGamePage() {
   const userId = session?.user?.id;
   type DifficultyType = 'easy' | 'medium' | 'hard';
   const difficulty: DifficultyType = roomData?.difficulty ?? "easy";
-  const difficultySettings = useMemo(() => getDifficultySettings(difficulty), [difficulty]);
+  const difficultySettings = useMemo(() => getDifficultySettings(difficulty, currentQuestion?.media), [difficulty, currentQuestion?.media]);
   // Audio player state - Added
   const audioRef = useRef<HTMLAudioElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);

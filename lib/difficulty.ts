@@ -18,10 +18,33 @@ export const DIFFICULTY_LEVELS: Record<Difficulty, { label: string; description:
   },
 };
 
-export const getDifficultySettings = (value: Difficulty): { showImage: boolean; showAudio: boolean } => {
-  return {
-    showImage: value === 'easy' || value === 'medium',
-    showAudio: value === 'easy' || value === 'medium',
-  };
+export const getDifficultySettings = (
+  difficulty: Difficulty,
+  media?: { image?: string | null; voice_record?: string | null }
+): { showImage: boolean; showAudio: boolean } => {
+  if (difficulty === 'easy') {
+    return { showImage: true, showAudio: true };
+  }
+
+  if (difficulty === 'medium') {
+    const hasImage = !!media?.image;
+    const hasAudio = !!media?.voice_record;
+
+    if (hasImage && hasAudio) {
+      const random = Math.random() < 0.5;
+      return { showImage: random, showAudio: !random };
+    } else if (hasImage) {
+      return { showImage: true, showAudio: false };
+    } else if (hasAudio) {
+      return { showImage: false, showAudio: true };
+    } else {
+      return { showImage: false, showAudio: false };
+    }
+  }
+
+  // Hard mode
+  return { showImage: false, showAudio: false };
 };
+
+
 

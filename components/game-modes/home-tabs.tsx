@@ -53,6 +53,8 @@ function generateRoomCode(length: number = 6): string {
 }
 
 export default function HomeTabs() {
+  const [selectedDifficulty, setSelectedDifficulty] = useState<'easy' | 'medium' | 'hard'>('easy');
+  const [isDifficultyDialogOpen, setIsDifficultyDialogOpen] = useState(false);
   const router = useRouter() // ✅ EKLENDİ: Yönlendirme için
   const [showHistory, setShowHistory] = useState(false)
   const { data: session, status } = useSession(); // Get session status
@@ -274,10 +276,11 @@ export default function HomeTabs() {
                     variant="default"
                     size="default"
                     className="w-full"
-                    onClick={() => router.push("/singleplayer/play")}
-                  >
-                    Play
-                  </Button>
+                    onClick={() => setIsDifficultyDialogOpen(true)}
+                    >
+                      Play
+                        </Button>
+
                 </div>
                 <div>
                   <p className="text-xs text-purple-200 mb-1.5">
@@ -426,6 +429,40 @@ export default function HomeTabs() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={isDifficultyDialogOpen} onOpenChange={setIsDifficultyDialogOpen}>
+  <DialogContent className="sm:max-w-sm bg-purple-900/80 backdrop-blur-md border-purple-400/30 text-white">
+    <DialogHeader>
+      <DialogTitle>Select Difficulty</DialogTitle>
+      <DialogDescription className="text-purple-200">
+        Choose a difficulty level before starting the game.
+      </DialogDescription>
+    </DialogHeader>
+    <div className="flex flex-col gap-3 py-4">
+      {(['easy', 'medium', 'hard'] as const).map((level) => (
+        <Button
+          key={level}
+          variant={selectedDifficulty === level ? "default" : "outline"}
+          onClick={() => setSelectedDifficulty(level)}
+          className={`capitalize w-full ${selectedDifficulty === level ? 'ring-2 ring-purple-400' : ''}`}
+        >
+          {level}
+        </Button>
+      ))}
+    </div>
+    <DialogFooter className="mt-2">
+      <Button
+        onClick={() => {
+          router.push(`/singleplayer/play?difficulty=${selectedDifficulty}`);
+        }}
+        className="w-full"
+      >
+        Start Game
+      </Button>
+    </DialogFooter>
+  </DialogContent>
+</Dialog>
+
 
     </div>
   )

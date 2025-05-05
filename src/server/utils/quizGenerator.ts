@@ -168,7 +168,11 @@ export async function createQuestion(type: 1 | 2 | 3 | 4, difficulty: 'easy' | '
 
     // For hard mode, we'll use a simplified type system (1: character, 2: recipient, 3: title)
     const hardModeType = difficulty === 'hard' ? Math.floor(Math.random() * 3) + 1 : type;
-
+    if (difficulty === 'hard' && hardModeType === 4) {
+      console.warn("Type 4 is not allowed in hard mode — retrying.");
+      return await createQuestion(type, difficulty); // Retry with new random question
+    }
+    
     switch (hardModeType) {
       // 1: Guess Character from Quote
       case 1: {
