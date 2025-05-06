@@ -373,7 +373,7 @@ export function EditQuestionForm() {
       </div>
 
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-        <DialogContent className="bg-gray-900 border-gray-800 text-white">
+        <DialogContent className="max-h-[90vh] overflow-y-auto bg-gray-900 border-gray-800 text-white">
           <DialogHeader>
             <DialogTitle className="text-white">Edit Quote</DialogTitle>
             <DialogDescription className="text-gray-300">

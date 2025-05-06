@@ -31,17 +31,19 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { MoreHorizontal, CheckCircle, Loader2, ShieldAlert, ShieldCheck, User, Trash2, Users } from 'lucide-react'
+import { MoreHorizontal, Loader2, ShieldAlert, ShieldCheck, User, Trash2, Users } from 'lucide-react'
 import { toast } from 'sonner'
 import { useSession } from 'next-auth/react'
 import { format } from 'date-fns'
-import { 
+import {
+  /*
     Tooltip, 
     TooltipContent, 
     TooltipProvider, 
     TooltipTrigger 
+    */
 } from '@/components/ui/tooltip'
-import { useRouter } from 'next/navigation'
+//import { useRouter } from 'next/navigation'
 
 // Define the User type based on API response (excluding password)
 type UserData = {
@@ -56,7 +58,7 @@ type UserData = {
 }
 
 function ManageUsersForm() {
-  const router = useRouter()
+  //const router = useRouter()
   const { data: session } = useSession();
   const [users, setUsers] = useState<UserData[]>([])
   const [isLoading, setIsLoading] = useState(true);
@@ -255,6 +257,7 @@ function ManageUsersForm() {
     }
   }
 
+  //use it
   const formatShortDate = (dateString: string | null | Date): string => {
       if (!dateString) return '-';
       try {

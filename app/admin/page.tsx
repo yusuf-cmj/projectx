@@ -12,14 +12,14 @@ import {
 import { Separator } from "@/components/ui/separator"
 import {
   SidebarInset,
-  SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar"
 import { useState, useEffect } from "react"
 import { CreateQuestionForm } from "./create/create-question-form"
 import { EditQuestionForm } from "./edit/edit-question-form"
+import RequestsPage from "./requests/page"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Users, Film, Gamepad2, Activity, ArrowUpRight, ArrowDownRight, UserCog, MailWarning, Loader2 } from "lucide-react"
+import { Users, Film, Gamepad2, ArrowUpRight, UserCog, MailWarning, Loader2 } from "lucide-react"
 import { useSession } from "next-auth/react"
 import { toast } from "sonner"
 import ManageUsersPage from "./manage-users/page"
@@ -91,12 +91,13 @@ export default function AdminDashboard() {
   }
 
   return (
-    <SidebarProvider>
+    <>
       <AppSidebar onPageChange={setActivePage} />
       <SidebarInset>
         <header className="flex h-16 shrink-0 items-center gap-2 border-b border-gray-800 bg-gray-900 px-4">
           <SidebarTrigger />
           <Separator orientation="vertical" className="h-6 bg-gray-800" />
+          
           <Breadcrumb>
             <BreadcrumbList>
               <BreadcrumbItem className="hidden md:block">
@@ -104,142 +105,147 @@ export default function AdminDashboard() {
               </BreadcrumbItem>
               <BreadcrumbSeparator className="hidden md:block text-gray-800" />
               <BreadcrumbItem>
-                <BreadcrumbPage className="text-white">
+                <BreadcrumbPage className="text-gray-400">
                   {activePage === 'dashboard' && 'Dashboard'}
                   {activePage === 'create' && 'Create Question'}
                   {activePage === 'edit' && 'Edit Question'}
                   {activePage === 'manage-users' && 'Manage Users'}
+                  {activePage === 'requests' && 'Requests'}
                 </BreadcrumbPage>
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
         </header>
 
-        <div className="flex flex-1 flex-col gap-4 p-6 text-white bg-gray-950">
-          {activePage === 'dashboard' ? (
-            <>
-              <div className="grid auto-rows-min gap-4 md:grid-cols-3">
-                <Card className="bg-gray-900 border-gray-800 shadow-lg">
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium text-white">Total Users</CardTitle>
-                    <Users className="h-4 w-4 text-gray-400" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold text-white">{stats.totalUsers}</div>
-                    <p className="text-xs text-gray-400">
-                      Active accounts in the system
-                    </p>
-                  </CardContent>
-                </Card>
+        <div className="flex-1 overflow-auto">
+          <div className="flex flex-col gap-4 p-4 lg:p-6 text-white bg-gray-950 min-h-full">
+            {activePage === 'dashboard' ? (
+              <>
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  <Card className="bg-gray-900 border-gray-800 shadow-lg">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium text-white">Total Users</CardTitle>
+                      <Users className="h-4 w-4 text-gray-400" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold text-white">{stats.totalUsers}</div>
+                      <p className="text-xs text-gray-400">
+                        Active accounts in the system
+                      </p>
+                    </CardContent>
+                  </Card>
 
-                <Card className="bg-gray-900 border-gray-800 shadow-lg">
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium text-white">Film Quotes</CardTitle>
-                    <Film className="h-4 w-4 text-gray-400" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold text-white">{stats.totalFilmQuotes}</div>
-                    <p className="text-xs text-gray-400">
-                      Total film quotes in database
-                    </p>
-                  </CardContent>
-                </Card>
+                  <Card className="bg-gray-900 border-gray-800 shadow-lg">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium text-white">Film Quotes</CardTitle>
+                      <Film className="h-4 w-4 text-gray-400" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold text-white">{stats.totalFilmQuotes}</div>
+                      <p className="text-xs text-gray-400">
+                        Total film quotes in database
+                      </p>
+                    </CardContent>
+                  </Card>
 
-                <Card className="bg-gray-900 border-gray-800 shadow-lg">
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium text-white">Game Quotes</CardTitle>
-                    <Gamepad2 className="h-4 w-4 text-gray-400" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold text-white">{stats.totalGameQuotes}</div>
-                    <p className="text-xs text-gray-400">
-                      Total game quotes in database
-                    </p>
-                  </CardContent>
-                </Card>
-              </div>
+                  <Card className="bg-gray-900 border-gray-800 shadow-lg sm:col-span-2 lg:col-span-1">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium text-white">Game Quotes</CardTitle>
+                      <Gamepad2 className="h-4 w-4 text-gray-400" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold text-white">{stats.totalGameQuotes}</div>
+                      <p className="text-xs text-gray-400">
+                        Total game quotes in database
+                      </p>
+                    </CardContent>
+                  </Card>
+                </div>
 
-              <div className="grid gap-4 md:grid-cols-2">
-                <Card className="bg-gray-900 border-gray-800 shadow-lg">
-                  <CardHeader>
-                    <CardTitle className="text-white">Recent Activity (24h)</CardTitle>
-                    <CardDescription className="text-gray-400">Last 24 hours game statistics</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <div className="text-sm font-medium text-gray-400">Total Games</div>
-                        <div className="text-2xl font-bold text-white">{stats.recentActivity.totalGames}</div>
+                <div className="grid gap-4 sm:grid-cols-1 lg:grid-cols-2">
+                  <Card className="bg-gray-900 border-gray-800 shadow-lg">
+                    <CardHeader>
+                      <CardTitle className="text-white">Recent Activity (24h)</CardTitle>
+                      <CardDescription className="text-gray-400">Last 24 hours game statistics</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <div className="text-sm font-medium text-gray-400">Total Games</div>
+                          <div className="text-2xl font-bold text-white">{stats.recentActivity.totalGames}</div>
+                        </div>
+                        <div className="space-y-2">
+                          <div className="text-sm font-medium text-gray-400">Unique Players</div>
+                          <div className="text-2xl font-bold text-white">{stats.recentActivity.uniquePlayers}</div>
+                        </div>
+                        <div className="space-y-2">
+                          <div className="text-sm font-medium text-gray-400">Average Score</div>
+                          <div className="text-2xl font-bold text-white">{stats.recentActivity.averageScore}</div>
+                        </div>
+                        <div className="space-y-2">
+                          <div className="text-sm font-medium text-gray-400">Highest Score</div>
+                          <div className="text-2xl font-bold text-white">{stats.recentActivity.highestScore}</div>
+                        </div>
                       </div>
-                      <div className="space-y-2">
-                        <div className="text-sm font-medium text-gray-400">Unique Players</div>
-                        <div className="text-2xl font-bold text-white">{stats.recentActivity.uniquePlayers}</div>
-                      </div>
-                      <div className="space-y-2">
-                        <div className="text-sm font-medium text-gray-400">Average Score</div>
-                        <div className="text-2xl font-bold text-white">{stats.recentActivity.averageScore}</div>
-                      </div>
-                      <div className="space-y-2">
-                        <div className="text-sm font-medium text-gray-400">Highest Score</div>
-                        <div className="text-2xl font-bold text-white">{stats.recentActivity.highestScore}</div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                    </CardContent>
+                  </Card>
 
-                <Card className="bg-gray-900 border-gray-800 shadow-lg">
-                  <CardHeader>
-                    <CardTitle className="text-white">Quick Actions</CardTitle>
-                    <CardDescription className="text-gray-400">Common administrative tasks</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-2 gap-4">
-                      <button
-                        onClick={() => setActivePage('create')}
-                        className="flex items-center space-x-2 p-3 rounded-lg bg-gray-800 hover:bg-gray-700 transition-colors text-white border border-gray-700"
-                      >
-                        <Film className="h-4 w-4" />
-                        <span>New Quote</span>
-                        <ArrowUpRight className="h-4 w-4 ml-auto" />
-                      </button>
-                      <button
-                        onClick={() => setActivePage('edit')}
-                        className="flex items-center space-x-2 p-3 rounded-lg bg-gray-800 hover:bg-gray-700 transition-colors text-white border border-gray-700"
-                      >
-                        <Gamepad2 className="h-4 w-4" />
-                        <span>Edit Quotes</span>
-                        <ArrowUpRight className="h-4 w-4 ml-auto" />
-                      </button>
-                      <button
-                        onClick={() => setActivePage('manage-users')}
-                        className="flex items-center space-x-2 p-3 rounded-lg bg-gray-800 hover:bg-gray-700 transition-colors text-white border border-gray-700"
-                      >
-                        <UserCog className="h-4 w-4" />
-                        <span>Manage Users</span>
-                        <ArrowUpRight className="h-4 w-4 ml-auto" />
-                      </button>
-                      <button
-                        onClick={() => setActivePage('requests')}
-                        className="flex items-center space-x-2 p-3 rounded-lg bg-gray-800 hover:bg-gray-700 transition-colors text-white border border-gray-700"
-                      >
-                        <MailWarning className="h-4 w-4" />
-                        <span>Requests</span>
-                        <ArrowUpRight className="h-4 w-4 ml-auto" />
-                      </button>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            </>
-          ) : activePage === 'create' ? (
-            <CreateQuestionForm />
-          ) : activePage === 'edit' ? (
-            <EditQuestionForm />
-          ) : activePage === 'manage-users' ? (
-            <ManageUsersPage />
-          ) : null}
+                  <Card className="bg-gray-900 border-gray-800 shadow-lg">
+                    <CardHeader>
+                      <CardTitle className="text-white">Quick Actions</CardTitle>
+                      <CardDescription className="text-gray-400">Common administrative tasks</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <button
+                          onClick={() => setActivePage('create')}
+                          className="flex items-center space-x-2 p-3 rounded-lg bg-gray-800 hover:bg-gray-700 transition-colors text-white border border-gray-700"
+                        >
+                          <Film className="h-4 w-4 shrink-0" />
+                          <span className="flex-1 text-left">New Quote</span>
+                          <ArrowUpRight className="h-4 w-4 shrink-0" />
+                        </button>
+                        <button
+                          onClick={() => setActivePage('edit')}
+                          className="flex items-center space-x-2 p-3 rounded-lg bg-gray-800 hover:bg-gray-700 transition-colors text-white border border-gray-700"
+                        >
+                          <Gamepad2 className="h-4 w-4 shrink-0" />
+                          <span className="flex-1 text-left">Edit Quotes</span>
+                          <ArrowUpRight className="h-4 w-4 shrink-0" />
+                        </button>
+                        <button
+                          onClick={() => setActivePage('manage-users')}
+                          className="flex items-center space-x-2 p-3 rounded-lg bg-gray-800 hover:bg-gray-700 transition-colors text-white border border-gray-700"
+                        >
+                          <UserCog className="h-4 w-4 shrink-0" />
+                          <span className="flex-1 text-left">Manage Users</span>
+                          <ArrowUpRight className="h-4 w-4 shrink-0" />
+                        </button>
+                        <button
+                          onClick={() => setActivePage('requests')}
+                          className="flex items-center space-x-2 p-3 rounded-lg bg-gray-800 hover:bg-gray-700 transition-colors text-white border border-gray-700"
+                        >
+                          <MailWarning className="h-4 w-4 shrink-0" />
+                          <span className="flex-1 text-left">Requests</span>
+                          <ArrowUpRight className="h-4 w-4 shrink-0" />
+                        </button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </>
+            ) : activePage === 'create' ? (
+              <CreateQuestionForm />
+            ) : activePage === 'edit' ? (
+              <EditQuestionForm />
+            ) : activePage === 'manage-users' ? (
+              <ManageUsersPage />
+            ) : activePage === 'requests' ? (
+              <RequestsPage />
+            ) : null}
+          </div>
         </div>
       </SidebarInset>
-    </SidebarProvider>
+    </>
   )
 }

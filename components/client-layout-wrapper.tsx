@@ -10,10 +10,15 @@ function ClientContent({ children }: { children: React.ReactNode }) {
   const { status } = useSession()
 
   // If not authenticated and not on a public route, show loading state
+
+  //loading state for all pages except login and register aka flashing pages
   if (status === "loading" && !pathname.startsWith("/login") && !pathname.startsWith("/register")) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-purple-900 to-indigo-900">
-        <div className="text-white text-xl animate-pulse">Loading...</div>
+      <div className="min-h-screen flex items-center justify-center bg-gray-950">
+        <div className="text-white text-xl animate-pulse flex items-center gap-2">
+          <div className="h-6 w-6 animate-spin border-2 border-gray-400 border-t-white rounded-full" />
+          Loading...
+        </div>
       </div>
     )
   }
