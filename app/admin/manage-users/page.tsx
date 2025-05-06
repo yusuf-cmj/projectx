@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import {
   Table,
@@ -71,7 +71,7 @@ function ManageUsersForm() {
   const [shouldRefresh, setShouldRefresh] = useState(false)
 
   // Function to fetch users
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     if (!session) {
       setIsLoading(false);
       return;
@@ -107,7 +107,7 @@ function ManageUsersForm() {
       } finally {
         setIsLoading(false);
       }
-    }
+    }, [session]);
 
   // Effect to handle initial load and refresh
   useEffect(() => {
@@ -116,7 +116,7 @@ function ManageUsersForm() {
     } else {
       setIsLoading(false);
     }
-  }, [session]);
+  }, [session, fetchUsers]);
 
   // Effect to handle refresh after actions
   useEffect(() => {
@@ -124,7 +124,7 @@ function ManageUsersForm() {
       fetchUsers();
       setShouldRefresh(false);
     }
-  }, [shouldRefresh]);
+  }, [shouldRefresh, fetchUsers]);
 
   // Effect to handle dialog closing
   useEffect(() => {
@@ -138,7 +138,7 @@ function ManageUsersForm() {
         setUserToDelete(null);
       }
     }
-  }, [isSubmitting, isDeleting]);
+  }, [isSubmitting, isDeleting, showConfirmDialog, userToDelete]);
 
   const handleRoleChange = async () => {
     if (!selectedUserForRoleChange || !targetRole) return;
@@ -255,18 +255,6 @@ function ManageUsersForm() {
     } catch {
       return 'Invalid Date';
     }
-  }
-
-  //use it
-  const formatShortDate = (dateString: string | null | Date): string => {
-      if (!dateString) return '-';
-      try {
-          const date = new Date(dateString);
-          // Use format from date-fns for short date
-          return format(date, 'yyyy-MM-dd');
-      } catch {
-          return 'Invalid Date';
-      }
   }
 
   if (isLoading) {
