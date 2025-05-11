@@ -82,29 +82,28 @@ export async function PUT(
 
 export async function DELETE(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
     const session = await getServerSession(authOptions)
-    const awaitedParams = await params;
 
     if (!session?.user || session.user.role !== 'admin') {
       return new NextResponse('Unauthorized', { status: 401 })
     }
 
     // Prevent deleting own account
-    if (session.user.id === awaitedParams.id) {
+    if (session.user.id === params.id) {
       return new NextResponse('Cannot delete your own account', { status: 400 })
     }
 
     // Delete user's game history first
     await prisma.gameHistory.deleteMany({
-      where: { userId: awaitedParams.id }
+      where: { userId: params.id }
     })
 
     // Delete the user
     await prisma.user.delete({
-      where: { id: awaitedParams.id }
+      where: { id: params.id }
     })
 
     return new NextResponse(null, { status: 204 })

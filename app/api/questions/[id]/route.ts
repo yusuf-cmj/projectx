@@ -1,4 +1,4 @@
-import { NextResponse, NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { FilmQuote, GameQuote/*, Prisma*/ } from '@prisma/client'; // Prisma kullanılmıyor
 import { z } from 'zod';
@@ -17,10 +17,10 @@ const baseQuoteUpdateSchema = z.object({
 
 // PUT - Soruyu (film veya oyun) güncelle
 export async function PUT(
-    request: NextRequest,
-    context: { params: Promise<{ id: string }> }
+    request: Request,
+    context: { params: { id: string } }
 ): Promise<NextResponse> {
-  const { id } = await context.params;
+  const { id } = context.params;
 
   // 1. Yetkilendirme Kontrolü (Admin mi?)
   const session = await getServerSession(authOptions);
@@ -170,10 +170,10 @@ export async function PUT(
 
 // DELETE - Soruyu (film veya oyun) sil
 export async function DELETE(
-    request: NextRequest,
-    context: { params: Promise<{ id: string }> }
+    request: Request,
+    context: { params: { id: string } }
 ): Promise<NextResponse> {
-  const { id } = await context.params;
+  const { id } = context.params;
 
   // 1. Yetkilendirme Kontrolü (Admin mi?)
   const session = await getServerSession(authOptions);
