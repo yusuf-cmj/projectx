@@ -55,6 +55,8 @@ const formatTime = (seconds: number): string => {
   return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 };
 
+const QUESTION_DURATION = 30; // Seconds for each question
+
 export default function MultiplayerGamePage() {
   const params = useParams();
   const router = useRouter();
@@ -86,12 +88,12 @@ export default function MultiplayerGamePage() {
     }
   }, [difficultySettings]);
 
-  const calculateTimeLeft = useCallback((startTime: number | undefined) => {
+  const calculateTimeLeft = (startTime: number | undefined) => {
     if (!startTime) return difficultySettings.timeLimit;
     const now = Date.now();
     const elapsed = Math.floor((now - startTime) / 1000);
     return Math.max(0, difficultySettings.timeLimit - elapsed);
-  }, [difficultySettings.timeLimit]);
+  };
 
   const moveToNextQuestionOrEnd = useCallback(async () => {
     if (!roomData || !currentQuestion || !userId || userId !== roomData.creatorId || roomData.status !== 'in-game') {
@@ -184,7 +186,7 @@ export default function MultiplayerGamePage() {
       toast.error("Error changing question. Please check connection.");
     }
     // --- END TRANSITION LOGIC ---
-  }, [roomData, currentQuestion, userId, roomCode, timeLeft, difficultySettings.timeLimit]);
+  }, [roomData, currentQuestion, userId, roomCode, timeLeft]);
 
   const scoreSavedRef = useRef(false);
 
@@ -313,7 +315,7 @@ export default function MultiplayerGamePage() {
         timerIntervalRef.current = null;
       }
     };
-  }, [roomData, roomData?.currentQuestionIndex, roomData?.currentQuestionStartTime, roomData?.status, difficultySettings.timeLimit, calculateTimeLeft, userId, moveToNextQuestionOrEnd]);
+  }, [roomData, roomData?.currentQuestionIndex, roomData?.currentQuestionStartTime, roomData?.status]);
 
   useEffect(() => {
     if (!roomCode) {
@@ -538,7 +540,7 @@ export default function MultiplayerGamePage() {
     }, 100);
 
     return () => clearInterval(interval);
-  }, [roomData?.currentQuestionStartTime, currentQuestion, difficultySettings.timeLimit, calculateTimeLeft, roomData]);
+  }, [roomData?.currentQuestionStartTime, currentQuestion, difficultySettings.timeLimit]);
 
   if (loading || sessionStatus === 'loading') {
     return (

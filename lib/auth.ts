@@ -1,5 +1,5 @@
-import { AuthOptions, User as NextAuthUser, Session } from "next-auth";
-import { JWT } from "next-auth/jwt";
+import { AuthOptions, User as NextAuthUser/*, Session*/ } from "next-auth"; // Session kullanılmıyor
+import { JWT } from "next-auth/jwt"; // JWT kullanılmıyor
 import CredentialsProvider from "next-auth/providers/credentials";
 // import GoogleProvider from "next-auth/providers/google"; // Kullanılmıyor
 import { PrismaAdapter } from "@auth/prisma-adapter";
@@ -109,7 +109,7 @@ export const authOptions: AuthOptions = {
         return token;
       }
     },
-    async session({ session, token }): Promise<Session> {
+    async session({ session, token }): Promise<any> {
       try {
         if (token) {
           session.user.id = token.id;
