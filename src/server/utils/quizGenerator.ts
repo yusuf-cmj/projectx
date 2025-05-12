@@ -14,6 +14,7 @@ interface QuestionFormat {
   };
   type: number;
   source: 'film' | 'game';
+  timeLimit: number; // Added time limit based on difficulty
 }
 
 // Helper function to get N distinct random items
@@ -89,216 +90,259 @@ async function getRandomDistinct(
   }
 }
 
+// Type 1 - Quote Identification
+async function generateType1Question(
+  correctQuoteData: FilmQuote | GameQuote,
+  modelName: 'filmQuote' | 'gameQuote',
+  difficulty: 'easy' | 'medium' | 'hard'
+): Promise<QuestionFormat | null> {
+  if (!correctQuoteData.quote || !correctQuoteData.image) return null;
+
+  const timeLimit = difficulty === 'easy' ? 30 : difficulty === 'medium' ? 20 : 15;
+  let questionText = '';
+  let media: QuestionFormat['media'] = {};
+
+  if (difficulty === 'easy') {
+    questionText = `In this scene, what does ${correctQuoteData.character} say to ${correctQuoteData.to || 'the other character'}?`;
+    media = {
+      image: correctQuoteData.image,
+      quote: correctQuoteData.quote
+    };
+  } else if (difficulty === 'medium') {
+    questionText = `In this scene, what does ${correctQuoteData.character} say?`;
+    media = {
+      image: correctQuoteData.image,
+      quote: correctQuoteData.quote
+    };
+  } else {
+    questionText = 'What is the quote said in this scene?';
+    media = {
+      image: correctQuoteData.image
+    };
+  }
+
+  // Get 3 incorrect quotes
+  const incorrectOptions = await getRandomDistinct(modelName, 'quote', 3, correctQuoteData.id, correctQuoteData.quote);
+  const options = _.shuffle([correctQuoteData.quote, ...incorrectOptions]);
+
+  return {
+    questionText,
+    options,
+    correctAnswer: correctQuoteData.quote,
+    media,
+    type: 1,
+    source: modelName === 'filmQuote' ? 'film' : 'game',
+    timeLimit
+  };
+}
+
+// Type 2 - Target Identification
+async function generateType2Question(
+  correctQuoteData: FilmQuote | GameQuote,
+  modelName: 'filmQuote' | 'gameQuote',
+  difficulty: 'easy' | 'medium' | 'hard'
+): Promise<QuestionFormat | null> {
+  if (!correctQuoteData.quote || !correctQuoteData.image || !correctQuoteData.to) return null;
+
+  const timeLimit = difficulty === 'easy' ? 30 : difficulty === 'medium' ? 20 : 15;
+  let questionText = '';
+  let media: QuestionFormat['media'] = {};
+
+  if (difficulty === 'easy') {
+    questionText = `In this scene, who does ${correctQuoteData.character} say "${correctQuoteData.quote}" to?`;
+    media = {
+      image: correctQuoteData.image,
+      quote: correctQuoteData.quote
+    };
+  } else if (difficulty === 'medium') {
+    questionText = `Who is the target of the quote "${correctQuoteData.quote}" in this scene?`;
+    media = {
+      image: correctQuoteData.image,
+      quote: correctQuoteData.quote
+    };
+  } else {
+    questionText = 'Who is being spoken to in this scene?';
+    media = {
+      image: correctQuoteData.image
+    };
+  }
+
+  const incorrectOptions = await getRandomDistinct(modelName, 'to', 3, correctQuoteData.id, correctQuoteData.to);
+  const options = _.shuffle([correctQuoteData.to, ...incorrectOptions]);
+
+  return {
+    questionText,
+    options,
+    correctAnswer: correctQuoteData.to,
+    media,
+    type: 2,
+    source: modelName === 'filmQuote' ? 'film' : 'game',
+    timeLimit
+  };
+}
+
+// Type 3 - Speaker Identification
+async function generateType3Question(
+  correctQuoteData: FilmQuote | GameQuote,
+  modelName: 'filmQuote' | 'gameQuote',
+  difficulty: 'easy' | 'medium' | 'hard'
+): Promise<QuestionFormat | null> {
+  if (!correctQuoteData.quote || !correctQuoteData.voice_record) return null;
+
+  const timeLimit = difficulty === 'easy' ? 30 : difficulty === 'medium' ? 20 : 15;
+  let questionText = '';
+  let media: QuestionFormat['media'] = {};
+
+  if (difficulty === 'easy') {
+    questionText = `Who says this quote: "${correctQuoteData.quote}"?`;
+    media = {
+      voice_record: correctQuoteData.voice_record,
+      quote: correctQuoteData.quote
+    };
+  } else if (difficulty === 'medium') {
+    questionText = 'Who says this line? (Listen to the audio clip.)';
+    media = {
+      voice_record: correctQuoteData.voice_record
+    };
+  } else {
+    questionText = 'Identify the speaker from the audio clip.';
+    media = {
+      voice_record: correctQuoteData.voice_record
+    };
+  }
+
+  const incorrectOptions = await getRandomDistinct(modelName, 'character', 3, correctQuoteData.id, correctQuoteData.character);
+  const options = _.shuffle([correctQuoteData.character, ...incorrectOptions]);
+
+  return {
+    questionText,
+    options,
+    correctAnswer: correctQuoteData.character,
+    media,
+    type: 3,
+    source: modelName === 'filmQuote' ? 'film' : 'game',
+    timeLimit
+  };
+}
+
+// Type 4 - Source Identification
+async function generateType4Question(
+  correctQuoteData: FilmQuote | GameQuote,
+  modelName: 'filmQuote' | 'gameQuote',
+  difficulty: 'easy' | 'medium' | 'hard'
+): Promise<QuestionFormat | null> {
+  if (!correctQuoteData.quote || !correctQuoteData.voice_record) return null;
+
+  const timeLimit = difficulty === 'easy' ? 30 : difficulty === 'medium' ? 20 : 15;
+  let questionText = '';
+  let media: QuestionFormat['media'] = {};
+
+  if (difficulty === 'easy') {
+    questionText = `From which ${modelName === 'filmQuote' ? 'movie' : 'game'} is this quote: "${correctQuoteData.quote}"?`;
+    media = {
+      voice_record: correctQuoteData.voice_record,
+      quote: correctQuoteData.quote
+    };
+  } else if (difficulty === 'medium') {
+    questionText = `Identify the ${modelName === 'filmQuote' ? 'movie' : 'game'} from this line.`;
+    media = {
+      voice_record: correctQuoteData.voice_record
+    };
+  } else {
+    questionText = `From which ${modelName === 'filmQuote' ? 'movie' : 'game'} is this voice clip?`;
+    media = {
+      voice_record: correctQuoteData.voice_record
+    };
+  }
+
+  const incorrectOptions = await getRandomDistinct(modelName, 'title', 3, correctQuoteData.id, correctQuoteData.title);
+  const options = _.shuffle([correctQuoteData.title, ...incorrectOptions]);
+
+  return {
+    questionText,
+    options,
+    correctAnswer: correctQuoteData.title,
+    media,
+    type: 4,
+    source: modelName === 'filmQuote' ? 'film' : 'game',
+    timeLimit
+  };
+}
+
+async function getRandomQuote(modelName: 'filmQuote' | 'gameQuote'): Promise<FilmQuote | GameQuote | null> {
+  if (modelName === 'filmQuote') {
+    const count = await prisma.filmQuote.count();
+    if (count === 0) return null;
+    const skip = Math.floor(Math.random() * count);
+    const results = await prisma.filmQuote.findMany({ take: 1, skip });
+    return results[0] || null;
+  } else {
+    const count = await prisma.gameQuote.count();
+    if (count === 0) return null;
+    const skip = Math.floor(Math.random() * count);
+    const results = await prisma.gameQuote.findMany({ take: 1, skip });
+    return results[0] || null;
+  }
+}
 
 export async function createQuestion(type: 1 | 2 | 3 | 4, difficulty: 'easy' | 'medium' | 'hard' = 'easy'): Promise<QuestionFormat | null> {
   try {
-    // Randomly choose between film and game quotes
     const modelName = Math.random() < 0.5 ? 'filmQuote' : 'gameQuote';
-
-    // Explicitly call count based on modelName
-    let totalQuotes = 0;
-    if (modelName === 'filmQuote') {
-      totalQuotes = await prisma.filmQuote.count();
-    } else {
-      totalQuotes = await prisma.gameQuote.count();
-    }
-
-    if (totalQuotes < 4 && (type === 1 || type === 2)) {
-      console.warn(`Need at least 4 quotes with distinct values for the chosen field to reliably generate type ${type} questions.`);
-    }
-    if (totalQuotes === 0) {
-      console.error("No quotes found in the database.");
-      return null;
-    }
-
-    // For easy mode, we need to find a quote that has both image and voice record
-    // For medium mode, we need a quote that has at least one of them
-    // For hard mode, we just need a quote with text
     let correctQuoteData: FilmQuote | GameQuote | null = null;
     let attempts = 0;
-    const maxAttempts = 10; // Limit the number of attempts to find a suitable quote
+    const maxAttempts = 10;
 
     while (attempts < maxAttempts) {
-      // Fetch a random quote to base the question on
-      const skip = Math.floor(Math.random() * totalQuotes);
+      const quote = await getRandomQuote(modelName);
+      if (!quote) continue;
 
-      // Explicitly call findMany based on modelName
-      if (modelName === 'filmQuote') {
-        const results = await prisma.filmQuote.findMany({ take: 1, skip: skip });
-        correctQuoteData = results[0] ?? null;
-      } else {
-        const results = await prisma.gameQuote.findMany({ take: 1, skip: skip });
-        correctQuoteData = results[0] ?? null;
-      }
+      // Check if quote meets requirements for the question type
+      const isValid = (() => {
+        switch (type) {
+          case 1: // Quote Identification
+            return quote.image && quote.quote;
+          case 2: // Target Identification
+            return quote.image && quote.quote && quote.to;
+          case 3: // Speaker Identification
+            return quote.voice_record && quote.quote;
+          case 4: // Source Identification
+            return quote.voice_record && quote.quote;
+          default:
+            return false;
+        }
+      })();
 
-      // Check if the quote meets the difficulty requirements
-      if (difficulty === 'easy') {
-        if (correctQuoteData?.image && correctQuoteData?.voice_record) {
-          break; // Found a suitable quote for easy mode
-        }
-      } else if (difficulty === 'medium') {
-        if (correctQuoteData?.image || correctQuoteData?.voice_record) {
-          break; // Found a suitable quote for medium mode
-        }
-      } else if (difficulty === 'hard') {
-        if (correctQuoteData?.quote) {
-          break; // Found a suitable quote for hard mode
-        }
+      if (isValid) {
+        correctQuoteData = quote;
+        break;
       }
 
       attempts++;
-      correctQuoteData = null;
     }
 
     if (!correctQuoteData) {
-      console.error("Could not fetch a suitable quote.");
+      console.error("Could not find a suitable quote for the question type.");
       return null;
     }
 
-    let questionText = '';
-    let options: string[] = [];
-    let correctAnswer = '';
-    const media: QuestionFormat['media'] = {};
-    const neededIncorrectOptions = 3; // We need 3 incorrect options
-
-    // For medium mode, randomly choose between image and voice record if both are available
-    const hasImage = !!correctQuoteData.image;
-    const hasVoice = !!correctQuoteData.voice_record;
-    const useImage = difficulty === 'medium' && hasImage && (!hasVoice || Math.random() < 0.5);
-
-    // For hard mode, we'll use a simplified type system (1: character, 2: recipient, 3: title)
-    const hardModeType = difficulty === 'hard' ? Math.floor(Math.random() * 3) + 1 : type;
-    if (difficulty === 'hard' && hardModeType === 4) {
-      console.warn("Type 4 is not allowed in hard mode — retrying.");
-      return await createQuestion(type, difficulty); // Retry with new random question
-    }
-    
-    switch (hardModeType) {
-      // 1: Guess Character from Quote
-      case 1: {
-        if (!correctQuoteData.quote) return null;
-        correctAnswer = correctQuoteData.character;
-        const incorrectOptions = await getRandomDistinct(modelName, 'character', neededIncorrectOptions, correctQuoteData.id, correctAnswer);
-        if (incorrectOptions.length < neededIncorrectOptions) {
-          console.warn(`Warning: Could only find ${incorrectOptions.length} distinct incorrect characters for type 1.`);
-        }
-        options = _.shuffle([correctAnswer, ...incorrectOptions]);
-        questionText = `Who says "${correctQuoteData.quote}"?`;
-        media.quote = correctQuoteData.quote;
-        if (difficulty === 'easy') {
-          media.image = correctQuoteData.image;
-          media.voice_record = correctQuoteData.voice_record;
-        } else if (difficulty === 'medium') {
-          if (useImage) {
-            media.image = correctQuoteData.image;
-          } else {
-            media.voice_record = correctQuoteData.voice_record;
-          }
-        }
-        break;
-      }
-
-      // 2: Guess Recipient from Quote
-      case 2: {
-        if (!correctQuoteData.quote || !correctQuoteData.to) return null;
-        correctAnswer = correctQuoteData.to;
-        const incorrectOptions = await getRandomDistinct(modelName, 'to', neededIncorrectOptions, correctQuoteData.id, correctAnswer);
-        if (incorrectOptions.length < neededIncorrectOptions) {
-          console.warn(`Warning: Could only find ${incorrectOptions.length} distinct incorrect 'to' values for type 2.`);
-        }
-        options = _.shuffle([correctAnswer, ...incorrectOptions]);
-        questionText = `Who is "${correctQuoteData.quote}" said to?`;
-        media.quote = correctQuoteData.quote;
-        if (difficulty === 'easy') {
-          media.image = correctQuoteData.image;
-          media.voice_record = correctQuoteData.voice_record;
-        } else if (difficulty === 'medium') {
-          if (useImage) {
-            media.image = correctQuoteData.image;
-          } else {
-            media.voice_record = correctQuoteData.voice_record;
-          }
-        }
-        break;
-      }
-
-      // 3: Guess Title from Quote
-      case 3: {
-        if (!correctQuoteData.quote) return null;
-        correctAnswer = correctQuoteData.title;
-        const incorrectOptions = await getRandomDistinct(modelName, 'title', neededIncorrectOptions, correctQuoteData.id, correctAnswer);
-        if (incorrectOptions.length < neededIncorrectOptions) {
-          console.warn(`Warning: Could only find ${incorrectOptions.length} distinct incorrect titles for type 3.`);
-        }
-        options = _.shuffle([correctAnswer, ...incorrectOptions]);
-        questionText = `Which ${modelName === 'filmQuote' ? 'movie' : 'game'} is this quote from: "${correctQuoteData.quote}"?`;
-        media.quote = correctQuoteData.quote;
-        if (difficulty === 'easy') {
-          media.image = correctQuoteData.image;
-          media.voice_record = correctQuoteData.voice_record;
-        } else if (difficulty === 'medium') {
-          if (useImage) {
-            media.image = correctQuoteData.image;
-          } else {
-            media.voice_record = correctQuoteData.voice_record;
-          }
-        }
-        break;
-      }
-
-      // Original question types for easy and medium modes
-      case 4: {
-        if (difficulty === 'hard') return null; // Skip type 4 in hard mode
-        if (!correctQuoteData.voice_record && !correctQuoteData.quote) return null;
-        correctAnswer = correctQuoteData.title;
-        const incorrectOptions = await getRandomDistinct(modelName, 'title', neededIncorrectOptions, correctQuoteData.id, correctAnswer);
-        if (incorrectOptions.length < neededIncorrectOptions) {
-          console.warn(`Warning: Could only find ${incorrectOptions.length} distinct incorrect titles for type 4.`);
-        }
-        options = _.shuffle([correctAnswer, ...incorrectOptions]);
-        questionText = `Which ${modelName === 'filmQuote' ? 'movie' : 'game'} is ${correctQuoteData.voice_record ? 'this voice recording' : 'this quote'} from?`;
-        if (difficulty === 'easy') {
-          media.image = correctQuoteData.image;
-          media.voice_record = correctQuoteData.voice_record;
-          media.quote = correctQuoteData.quote;
-        } else if (difficulty === 'medium') {
-          if (useImage) {
-            media.image = correctQuoteData.image;
-          } else {
-            media.voice_record = correctQuoteData.voice_record;
-            media.quote = correctQuoteData.quote;
-          }
-        }
-        break;
-      }
-
+    // Generate question based on type
+    switch (type) {
+      case 1:
+        return await generateType1Question(correctQuoteData, modelName, difficulty);
+      case 2:
+        return await generateType2Question(correctQuoteData, modelName, difficulty);
+      case 3:
+        return await generateType3Question(correctQuoteData, modelName, difficulty);
+      case 4:
+        return await generateType4Question(correctQuoteData, modelName, difficulty);
       default:
         console.error("Invalid question type requested.");
         return null;
     }
 
-    // Ensure we always return the minimum number of options, even if duplicates from less data
-    while (options.length < neededIncorrectOptions + 1) {
-      console.warn(`Padding options for type ${type} due to lack of distinct data.`);
-      options.push("Insufficient Data");
-    }
-    options = _.shuffle(options.slice(0, neededIncorrectOptions + 1));
-
-    return {
-      questionText,
-      options,
-      correctAnswer,
-      media,
-      type: hardModeType,
-      source: modelName === 'filmQuote' ? 'film' : 'game'
-    };
-
   } catch (error) {
     console.error("Error creating question:", error);
     return null;
-  } finally {
-    // Optional: Disconnect Prisma client if used transiently
-    // await prisma.$disconnect();
   }
 }
 

@@ -1,5 +1,5 @@
-import { AuthOptions, User as NextAuthUser/*, Session*/ } from "next-auth"; // Session kullanılmıyor
-import { /*JWT*/ } from "next-auth/jwt"; // JWT kullanılmıyor
+import { AuthOptions, User as NextAuthUser, Session } from "next-auth";
+import { JWT } from "next-auth/jwt";
 import CredentialsProvider from "next-auth/providers/credentials";
 // import GoogleProvider from "next-auth/providers/google"; // Kullanılmıyor
 import { PrismaAdapter } from "@auth/prisma-adapter";
@@ -38,7 +38,7 @@ declare module "next-auth/jwt" {
 }
 
 export const authOptions: AuthOptions = {
-  // @ts-expect-error // Adapter tip uyumsuzluğu (NextAuth vs @auth/prisma-adapter) - geçici çözüm
+  // @ts-expect-error Adapter tip uyumsuzluğu (NextAuth vs @auth/prisma-adapter)
   adapter: PrismaAdapter(prisma),
   providers: [
     CredentialsProvider({
@@ -47,62 +47,88 @@ export const authOptions: AuthOptions = {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" }
       },
-      async authorize(credentials/*, req*/): Promise<NextAuthUser | null> { // req kullanılmıyor
-        if (!credentials?.email || !credentials.password) {
-          return null;
-        }
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email }
-        });
+      async authorize(credentials): Promise<NextAuthUser | null> {
+        try {
+          if (!credentials?.email || !credentials.password) {
+            throw new Error("Email and password required");
+          }
 
-        if (!user || !user.password) {
-          return null;
-        }
+          const user = await prisma.user.findUnique({
+            where: { email: credentials.email }
+          });
 
-        const isValid = await bcrypt.compare(credentials.password, user.password);
+          if (!user || !user.password) {
+            throw new Error("Invalid email or password");
+          }
 
-        if (!isValid) {
-          return null;
-        }
+          const isValid = await bcrypt.compare(credentials.password, user.password);
 
-        return {
+          if (!isValid) {
+            throw new Error("Invalid email or password");
+          }
+
+          return {
             id: user.id,
             name: user.name,
             email: user.email,
             image: user.image,
-            role: user.role,
-        } as NextAuthUser & { role: string };
+            role: user.role || "user", // Default role if not set
+          };
+        } catch (error) {
+          console.error("Auth error:", error);
+          throw error;
+        }
       }
     })
   ],
   session: {
     strategy: "jwt",
+    maxAge: 30 * 24 * 60 * 60, // 30 days
   },
   callbacks: {
-    async jwt({ token, user/*, account, profile*/, trigger, session }) { // account, profile kullanılmıyor
-      if (user) {
-        token.id = user.id;
-        token.role = (user as NextAuthUser & { role: string }).role || 'user';
-        token.name = user.name;
-        token.email = user.email;
-        token.picture = user.image;
+    async jwt({ token, user, trigger, session }): Promise<JWT> {
+      try {
+        if (user) {
+          token.id = user.id;
+          token.role = user.role || "user";
+          token.name = user.name;
+          token.email = user.email;
+          token.picture = user.image;
+        }
+        
+        if (trigger === "update" && session?.user) {
+          token.role = session.user.role || token.role;
+          token.name = session.user.name || token.name;
+          token.email = session.user.email || token.email;
+          token.picture = session.user.image || token.picture;
+        }
+        
+        return token;
+      } catch (error) {
+        console.error("JWT callback error:", error);
+        return token;
       }
-      if (trigger === "update" && session?.user?.role) {
-        token.role = session.user.role;
-      }
-      return token;
     },
-    async session({ session, token }) {
-      if (token) {
-        session.user.id = token.id;
-        session.user.role = token.role;
-        session.user.name = token.name;
-        session.user.email = token.email;
-        session.user.image = token.picture;
+    async session({ session, token }): Promise<Session> {
+      try {
+        if (token) {
+          session.user.id = token.id;
+          session.user.role = token.role || "user";
+          session.user.name = token.name;
+          session.user.email = token.email;
+          session.user.image = token.picture;
+        }
+        return session;
+      } catch (error) {
+        console.error("Session callback error:", error);
+        return session;
       }
-      return session;
     },
   },
-  pages: { signIn: '/login' },
+  pages: {
+    signIn: '/login',
+    error: '/login',
+  },
   secret: process.env.NEXTAUTH_SECRET,
+  debug: process.env.NODE_ENV === 'development',
 };

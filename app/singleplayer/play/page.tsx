@@ -44,17 +44,20 @@ export default function SingleplayerPlayPage() {
   const difficulty: DifficultyType = ["easy", "medium", "hard"].includes(rawDifficulty)
     ? (rawDifficulty as DifficultyType)
     : "easy";
+  const rawNumQuestions = searchParams?.get("numQuestions");
+  const numQuestionsParam = parseInt(rawNumQuestions || "5", 10);
+  const totalQuestions = useMemo(() => (isNaN(numQuestionsParam) || numQuestionsParam <= 0) ? 5 : numQuestionsParam, [numQuestionsParam]);
     
   const router = useRouter()
   const [question, setQuestion] = useState<Question | null>(null)
   const difficultySettings = useMemo(
-    () => getDifficultySettings(difficulty, question?.media),
-    [difficulty, question?.media]
+    () => getDifficultySettings(difficulty, question?.media, question?.type),
+    [difficulty, question?.media, question?.type]
   );
   const [questionIndex, setQuestionIndex] = useState(1)
   const [selectedOption, setSelectedOption] = useState<string | null>(null)
   const [showNext, setShowNext] = useState(false)
-  const [timeLeft, setTimeLeft] = useState(30.0)
+  const [timeLeft, setTimeLeft] = useState(difficultySettings.timeLimit)
   const [score, setScore] = useState(0)
   const [showResult, setShowResult] = useState(false)
   const [showExitDialog, setShowExitDialog] = useState(false)
@@ -93,7 +96,7 @@ export default function SingleplayerPlayPage() {
     const loadQuestion = async () => {
       try {
         const type = (Math.floor(Math.random() * 4) + 1) as 1 | 2 | 3 | 4
-        const res = await fetch(`/api/singleplayer-question?type=${type}`)
+        const res = await fetch(`/api/singleplayer-question?type=${type}&difficulty=${difficulty}`)
         if (!res.ok) {
           throw new Error(`Failed to fetch question (status: ${res.status})`);
         }
@@ -104,7 +107,7 @@ export default function SingleplayerPlayPage() {
         setQuestion(data)
         setSelectedOption(null)
         setShowNext(false)
-        setTimeLeft(30)
+        setTimeLeft(difficultySettings.timeLimit)
         setIsPlaying(false);
         setCurrentTime(0);
         setDuration(0);
@@ -118,14 +121,14 @@ export default function SingleplayerPlayPage() {
     }
 
     loadQuestion()
-  }, [questionIndex])
+  }, [questionIndex, difficulty, difficultySettings.timeLimit])
 
   useEffect(() => {
     if (selectedOption || timeLeft <= 0) return
   
     const interval = setInterval(() => {
       setTimeLeft((prev) => {
-        const next = +(prev - 0.1).toFixed(1) // ✅ 100ms'de 0.1 azalt
+        const next = +(prev - 0.1).toFixed(1)
         if (next <= 0) {
           clearInterval(interval)
           setShowNext(true)
@@ -158,7 +161,7 @@ export default function SingleplayerPlayPage() {
     if (isTransitioning) return; // Eğer geçiş zaten yapılıyorsa tıklamayı engelle
     setIsTransitioning(true);    // geçiş yapıldığını işaretle
   
-    if (questionIndex === 5) {
+    if (questionIndex >= totalQuestions) {
       setShowResult(true)
     } else {
       setQuestionIndex(prev => prev + 1)
@@ -260,7 +263,7 @@ export default function SingleplayerPlayPage() {
           <Button 
             variant="default" 
             size="lg" 
-            onClick={() => router.push('/home')}
+            onClick={() => router.replace('/home')}
             className="w-full bg-purple-600 hover:bg-purple-500 text-lg transition-all duration-300 hover:shadow-lg hover:scale-105 active:scale-95"
           >
             Back to Menu
@@ -303,7 +306,7 @@ export default function SingleplayerPlayPage() {
             <span className="truncate">{question.source === 'film' ? 'Movie Question' : 'Game Question'}</span>
           </div>
           <div className="text-white font-medium text-lg text-center">
-            Question {questionIndex}/5
+            Question {questionIndex}/{totalQuestions}
           </div>
           <div className="flex items-center justify-end gap-1 text-yellow-400 font-semibold text-sm mr-8">
              <Timer size={16} />
@@ -314,13 +317,13 @@ export default function SingleplayerPlayPage() {
         <div className="mb-6 relative h-2 w-full bg-purple-900/60 rounded-full overflow-hidden">
           <div
             className={`absolute left-0 top-0 h-full rounded-full transition-all duration-500 ease-linear ${getProgressColor()}`}
-            style={{ width: `${(timeLeft / 30) * 100}%` }}
+            style={{ width: `${(timeLeft / difficultySettings.timeLimit) * 100}%` }}
           />
         </div>
 
         <div className="mb-5 min-h-[160px] flex flex-col items-center justify-center">
           {difficultySettings.showImage && question.media?.image && (
-            <div className="relative w-full max-w-lg h-40 animate-in fade-in duration-300">
+            <div className="relative w-full max-w-lg h-56 animate-in fade-in duration-300 mb-4">
               <NextImage 
                 src={question.media.image} 
                 alt="scene" 
@@ -380,7 +383,7 @@ export default function SingleplayerPlayPage() {
           )}
         </div>
 
-        <p className="text-center mb-6 text-xl font-semibold text-white min-h-[56px]">{question.questionText}</p>
+        <p className="text-center mb-6 text-xl font-semibold text-white min-h-[60px] px-3 md:px-10">{question.questionText}</p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {question.options.map((opt: string, idx: number) => {
@@ -417,7 +420,7 @@ export default function SingleplayerPlayPage() {
               onClick={handleNext}
               className="w-full sm:w-auto sm:px-10 bg-purple-600 hover:bg-purple-500 text-lg transition-all duration-300 hover:shadow-md active:scale-95"
             >
-              {questionIndex === 5 ? 'Finish Quiz' : 'Next Question'}
+              {questionIndex >= totalQuestions ? 'Finish Quiz' : 'Next Question'}
             </Button>
           </div>
         )}

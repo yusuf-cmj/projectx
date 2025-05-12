@@ -40,6 +40,8 @@ interface RoomData {
   currentQuestionStartTime?: object; // Using serverTimestamp object
   answers?: { [questionIndex: number]: { [playerId: string]: string } }; // Structure to store answers
   gameMode?: 'normal' | 'rushmode'; // Add game mode field
+  difficulty?: 'easy' | 'medium' | 'hard'; // ✅ Ekle bunu
+  questionCount?: 5 | 10 | 15 | 20; // Add question count
 }
 
 export default function LobbyPage() {
@@ -51,6 +53,7 @@ export default function LobbyPage() {
   // const { user } = useAuth(); // Get current user if available
 
   const [difficulty, setDifficulty] = useState<Difficulty>('easy');
+  const [questionCount, setQuestionCount] = useState<5 | 10 | 15 | 20>(5); // Add state for question count
   const [roomData, setRoomData] = useState<RoomData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -146,7 +149,7 @@ export default function LobbyPage() {
     }
 
     setIsStarting(true);
-    const numberOfQuestions = 5; // Define how many questions to fetch
+    const numberOfQuestions = questionCount; // Use the selected question count
     const questions: Quote[] = [];
 
     try {
@@ -197,6 +200,7 @@ export default function LobbyPage() {
         answers: {}, // Initialize empty answers object
         status: 'in-game', // Set status last
         difficulty: difficulty,
+        questionCount: questionCount, // Include question count in game state
       };
 
       // 3. Update Firebase
@@ -331,6 +335,28 @@ export default function LobbyPage() {
           ) : (
             <p className="text-purple-300 text-center">
               Difficulty will be set by the room creator.
+            </p>
+          )}
+        </div>
+        <div className="bg-purple-800/20 backdrop-blur-sm p-6 rounded-xl border border-purple-400/20 mb-6">
+          <h2 className="text-2xl font-semibold mb-4 text-white tracking-wide flex items-center gap-2">
+            <span className="animate-bounce">🔢</span> Question Count
+          </h2>
+          {userId === roomData?.creatorId ? (
+            <select
+              value={questionCount}
+              onChange={(e) => setQuestionCount(Number(e.target.value) as 5 | 10 | 15 | 20)}
+              className="w-full p-3 rounded-lg bg-purple-700/30 border border-purple-400/40 text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+            >
+              {[5, 10, 15, 20].map((count) => (
+                <option key={count} value={count}>
+                  {count} Questions
+                </option>
+              ))}
+            </select>
+          ) : (
+            <p className="text-purple-300 text-center">
+              Question count will be set by the room creator.
             </p>
           )}
         </div>

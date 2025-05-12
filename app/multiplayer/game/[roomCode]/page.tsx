@@ -55,8 +55,6 @@ const formatTime = (seconds: number): string => {
   return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 };
 
-const QUESTION_DURATION = 30; // Seconds for each question
-
 export default function MultiplayerGamePage() {
   const params = useParams();
   const router = useRouter();
@@ -69,25 +67,31 @@ export default function MultiplayerGamePage() {
   const [error, setError] = useState<string | null>(null);
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(QUESTION_DURATION);
+  const [timeLeft, setTimeLeft] = useState(30); // Default value, will be updated when difficultySettings is available
   const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const processedIndexRef = useRef<number | null>(null);
   const userId = session?.user?.id;
   type DifficultyType = 'easy' | 'medium' | 'hard';
   const difficulty: DifficultyType = roomData?.difficulty ?? "easy";
-  const difficultySettings = useMemo(() => getDifficultySettings(difficulty, currentQuestion?.media), [difficulty, currentQuestion?.media]);
+  const difficultySettings = useMemo(() => getDifficultySettings(difficulty, currentQuestion?.media, currentQuestion?.type), [difficulty, currentQuestion?.media, currentQuestion?.type]);
   // Audio player state - Added
   const audioRef = useRef<HTMLAudioElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
 
-  const calculateTimeLeft = (startTime: number | undefined) => {
-    if (!startTime) return QUESTION_DURATION;
+  useEffect(() => {
+    if (difficultySettings) {
+      setTimeLeft(difficultySettings.timeLimit);
+    }
+  }, [difficultySettings]);
+
+  const calculateTimeLeft = useCallback((startTime: number | undefined) => {
+    if (!startTime) return difficultySettings.timeLimit;
     const now = Date.now();
     const elapsed = Math.floor((now - startTime) / 1000);
-    return Math.max(0, QUESTION_DURATION - elapsed);
-  };
+    return Math.max(0, difficultySettings.timeLimit - elapsed);
+  }, [difficultySettings.timeLimit]);
 
   const moveToNextQuestionOrEnd = useCallback(async () => {
     if (!roomData || !currentQuestion || !userId || userId !== roomData.creatorId || roomData.status !== 'in-game') {
@@ -127,7 +131,7 @@ export default function MultiplayerGamePage() {
           ? firstCorrectAnswer.timestamp
           : Date.now(); // fallback
         const timeSpent = Math.floor((answerTime - startTime) / 1000);
-        const timeLeft = Math.max(QUESTION_DURATION - timeSpent, 0);
+        const timeLeft = Math.max(difficultySettings.timeLimit - timeSpent, 0);
         const scoreChange = timeLeft > 0 ? timeLeft : 5;
         scoreUpdates[`players/${firstCorrectAnswer.playerId}/score`] =
           (roomData.players[firstCorrectAnswer.playerId].score || 0) + scoreChange;
@@ -180,7 +184,7 @@ export default function MultiplayerGamePage() {
       toast.error("Error changing question. Please check connection.");
     }
     // --- END TRANSITION LOGIC ---
-  }, [roomData, currentQuestion, userId, roomCode, timeLeft]);
+  }, [roomData, currentQuestion, userId, roomCode, timeLeft, difficultySettings.timeLimit]);
 
   const scoreSavedRef = useRef(false);
 
@@ -296,10 +300,10 @@ export default function MultiplayerGamePage() {
           setTimeLeft(0);
         }
       } else {
-        setTimeLeft(QUESTION_DURATION);
+        setTimeLeft(difficultySettings.timeLimit);
       }
     } else {
-      setTimeLeft(QUESTION_DURATION);
+      setTimeLeft(difficultySettings.timeLimit);
     }
 
     // Cleanup timer on effect re-run or unmount
@@ -309,7 +313,7 @@ export default function MultiplayerGamePage() {
         timerIntervalRef.current = null;
       }
     };
-  }, [roomData, roomData?.currentQuestionIndex, roomData?.currentQuestionStartTime, roomData?.status]);
+  }, [roomData, roomData?.currentQuestionIndex, roomData?.currentQuestionStartTime, roomData?.status, difficultySettings.timeLimit, calculateTimeLeft, userId, moveToNextQuestionOrEnd]);
 
   useEffect(() => {
     if (!roomCode) {
@@ -484,7 +488,7 @@ export default function MultiplayerGamePage() {
   };
 
   const getProgressColor = () => {
-    const percentage = (timeLeft / QUESTION_DURATION) * 100;
+    const percentage = (timeLeft / difficultySettings.timeLimit) * 100;
     if (percentage > 66) return 'bg-green-500';
     if (percentage > 33) return 'bg-yellow-400';
     if (percentage > 10) return 'bg-orange-500';
@@ -512,6 +516,29 @@ export default function MultiplayerGamePage() {
       moveToNextQuestionOrEnd();
     }
   }, [roomData, currentQuestion, userId, moveToNextQuestionOrEnd]);
+
+  useEffect(() => {
+    if (!roomData || !currentQuestion) return;
+
+    const startTime = typeof roomData.currentQuestionStartTime === 'number'
+      ? roomData.currentQuestionStartTime
+      : Date.now();
+
+    setTimeLeft(calculateTimeLeft(startTime));
+
+    const interval = setInterval(() => {
+      setTimeLeft(prev => {
+        const next = +(prev - 0.1).toFixed(1);
+        if (next <= 0) {
+          clearInterval(interval);
+          return 0;
+        }
+        return next;
+      });
+    }, 100);
+
+    return () => clearInterval(interval);
+  }, [roomData?.currentQuestionStartTime, currentQuestion, difficultySettings.timeLimit, calculateTimeLeft, roomData]);
 
   if (loading || sessionStatus === 'loading') {
     return (
@@ -595,7 +622,7 @@ export default function MultiplayerGamePage() {
           <Button
             variant="default"
             size="lg"
-            onClick={() => router.push('/home')}
+            onClick={() => router.replace('/home')}
             className="w-full bg-purple-600 hover:bg-purple-500 text-lg transition-all duration-300 hover:shadow-lg hover:scale-105 active:scale-95"
           >
             Back to Home
@@ -677,14 +704,14 @@ export default function MultiplayerGamePage() {
         <div className="mb-6 relative h-2 w-full bg-purple-900/60 rounded-full overflow-hidden">
           <div
             className={`absolute left-0 top-0 h-full rounded-full transition-all duration-500 ease-linear ${getProgressColor()}`}
-            style={{ width: `${(timeLeft / QUESTION_DURATION) * 100}%` }}
+            style={{ width: `${(timeLeft / difficultySettings.timeLimit) * 100}%` }}
           />
         </div>
 
         {/* Media Area (Image or Audio) */}
         <div className="mb-5 min-h-[160px] flex flex-col items-center justify-center">
         {difficultySettings.showImage && currentQuestion.media?.image && (
-            <div className="relative w-full max-w-lg h-40 animate-in fade-in duration-300">
+            <div className="relative w-full max-w-lg h-56 animate-in fade-in duration-300 mb-4">
               <NextImage
                 src={currentQuestion.media.image}
                 alt="scene"
@@ -752,7 +779,7 @@ export default function MultiplayerGamePage() {
         </div>
 
         {/* Question Text */}
-        <p className="text-center mb-6 text-xl font-semibold text-white min-h-[56px]">{currentQuestion.questionText}</p>
+        <p className="text-center mb-6 text-xl font-semibold text-white min-h-[60px] px-3 md:px-10">{currentQuestion.questionText}</p>
 
         {/* Options Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

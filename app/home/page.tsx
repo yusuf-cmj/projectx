@@ -3,21 +3,52 @@
 import { useSession } from "next-auth/react"
 import { NavUser } from "@/components/nav-user"
 import HomeTabs from "@/components/game-modes/home-tabs"
+import { useState } from "react"
 
 export default function Page() {
   const { data: session, status } = useSession()
+  const [loading, setLoading] = useState(true)
 
-  if (status === "loading") {
-    return <p>Loading...</p>
+  // Session statusu değiştiğinde loading durumunu güncelle
+  if (status !== "loading" && loading) {
+    setLoading(false)
   }
-  if (!session) {
-    return <p>Access Denied</p>
+
+  // Loading durumunda göster
+  if (loading || status === "loading") {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-purple-900 to-indigo-900">
+        <div className="bg-purple-800/30 backdrop-blur-sm p-8 rounded-2xl border border-purple-400/20 shadow-lg text-center">
+          <div className="flex flex-col items-center gap-4">
+            <div className="text-white text-xl animate-pulse flex items-center gap-2">
+              <div className="h-6 w-6 animate-spin border-2 border-gray-400 border-t-white rounded-full" />
+              Loading...
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Session yoksa veya user yoksa (middleware tarafından korunuyor olsa da ek kontrol)
+  if (!session?.user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-purple-900 to-indigo-900">
+        <div className="bg-purple-800/30 backdrop-blur-sm p-8 rounded-2xl border border-purple-400/20 shadow-lg text-center">
+          <div className="flex flex-col items-center gap-4">
+            <div className="text-white text-xl">
+              Session not available
+            </div>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   const userData = {
-    name: session?.user?.name || "Guest",
-    email: session?.user?.email || "",
-    avatar: session?.user?.image || ""
+    name: session.user.name || "Guest",
+    email: session.user.email || "",
+    avatar: session.user.image || ""
   }
 
   return (

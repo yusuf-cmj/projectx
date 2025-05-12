@@ -19,10 +19,11 @@ import { CreateQuestionForm } from "./create/create-question-form"
 import { EditQuestionForm } from "./edit/edit-question-form"
 import RequestsPage from "./requests/page"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Users, Film, Gamepad2, ArrowUpRight, UserCog, MailWarning, Loader2 } from "lucide-react"
+import { Users, Film, Gamepad2, ArrowUpRight, UserCog, MailWarning, Loader2, ShieldAlert } from "lucide-react"
 import { useSession } from "next-auth/react"
 import { toast } from "sonner"
 import ManageUsersPage from "./manage-users/page"
+import { useRouter } from "next/navigation"
 
 type DashboardStats = {
   totalUsers: number;
@@ -50,12 +51,18 @@ export default function AdminDashboard() {
     }
   })
   const [isLoading, setIsLoading] = useState(true)
-  const { data: session } = useSession()
+  const { data: session, status } = useSession()
+  const router = useRouter()
+
+  useEffect(() => {
+    if (status === "authenticated" && session?.user?.role !== "admin") {
+      router.replace("/login")
+    }
+  }, [status, session, router])
 
   useEffect(() => {
     async function fetchStats() {
       if (!session) return
-      
       try {
         const response = await fetch('/api/admin/stats')
         if (!response.ok) throw new Error('Failed to fetch stats')
@@ -68,13 +75,14 @@ export default function AdminDashboard() {
         setIsLoading(false)
       }
     }
-
     if (session?.user?.role === 'admin') {
       fetchStats()
+    } else {
+      setIsLoading(false)
     }
   }, [session])
 
-  if (isLoading) {
+  if (isLoading || status === "loading") {
     return (
       <div className="min-h-screen bg-gray-950 flex items-center justify-center">
         <div className="bg-gray-900 p-8 rounded-2xl border border-gray-800 shadow-lg text-center">
@@ -84,6 +92,20 @@ export default function AdminDashboard() {
               Loading dashboard...
             </div>
             <div className="text-gray-400 text-sm">Preparing your admin dashboard</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (status === "authenticated" && session?.user?.role !== "admin") {
+    return (
+      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
+        <div className="bg-gray-900 p-8 rounded-2xl border border-gray-800 shadow-lg text-center">
+          <div className="flex flex-col items-center gap-4">
+            <ShieldAlert className="h-12 w-12 text-red-400" />
+            <h2 className="text-xl font-semibold text-white">Access Denied</h2>
+            <p className="text-gray-300">You do not have permission to view this page.</p>
           </div>
         </div>
       </div>

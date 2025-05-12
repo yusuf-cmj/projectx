@@ -118,27 +118,23 @@ function ManageUsersForm() {
     }
   }, [session]);
 
-  // Effect to handle refresh after actions
+  // Effect to handle refresh after actions - iyileştirilmiş versiyon
   useEffect(() => {
     if (shouldRefresh) {
+      // İsteği yapıyoruz
       fetchUsers();
+      // Bayrak değişkenini sıfırlıyoruz
       setShouldRefresh(false);
     }
   }, [shouldRefresh]);
 
-  // Effect to handle dialog closing
-  useEffect(() => {
-    if (!isSubmitting && !isDeleting) {
-      if (showConfirmDialog) {
-      setShowConfirmDialog(false);
-      setSelectedUserForRoleChange(null);
-      setTargetRole(null);
+  // Dialogların başarılı kapanışını sağlayan yardımcı fonksiyon
+  const resetDialogStates = () => {
+    setShowConfirmDialog(false);
+    setSelectedUserForRoleChange(null);
+    setTargetRole(null);
+    setUserToDelete(null);
   }
-      if (userToDelete) {
-        setUserToDelete(null);
-      }
-    }
-  }, [isSubmitting, isDeleting]);
 
   const handleRoleChange = async () => {
     if (!selectedUserForRoleChange || !targetRole) return;
@@ -168,8 +164,11 @@ function ManageUsersForm() {
       const updatedUser: UserData = await response.json();
       toast.success(`User ${updatedUser.name || ''} role updated to ${updatedUser.role}`);
       
-      // Reload the page after successful update
-      window.location.reload();
+      // İlk olarak dialog'u kapat
+      resetDialogStates();
+      
+      // Ardından listeyi yenileme işlemini başlat
+      setShouldRefresh(true);
 
     } catch (error: unknown) {
       console.error('Error updating user role:', error);
@@ -206,8 +205,11 @@ function ManageUsersForm() {
 
       toast.success(`User ${userToDelete.name || userToDelete.email} has been deleted`);
       
-      // Reload the page after successful deletion
-      window.location.reload();
+      // İlk olarak dialog'u kapat
+      resetDialogStates();
+      
+      // Ardından listeyi yenileme işlemini başlat
+      setShouldRefresh(true);
 
     } catch (error: unknown) {
       console.error('Error deleting user:', error);
@@ -231,9 +233,7 @@ function ManageUsersForm() {
 
   const closeConfirmDialog = () => {
     if (isSubmitting || isDeleting) return; // Prevent closing dialog while any operation is in progress
-    setShowConfirmDialog(false);
-    setSelectedUserForRoleChange(null);
-    setTargetRole(null);
+    resetDialogStates();
   }
 
   const openDeleteDialog = (user: UserData) => {
@@ -412,7 +412,14 @@ function ManageUsersForm() {
         </Table>
       </div>
 
-      <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+      <Dialog 
+        open={showConfirmDialog} 
+        onOpenChange={(open) => {
+          if (!open && !isSubmitting) {
+            resetDialogStates();
+          }
+        }}
+      >
         <DialogContent className="bg-gray-900 border-gray-800 text-white">
           <DialogHeader>
             <DialogTitle className="text-white">Confirm Role Change</DialogTitle>
@@ -459,7 +466,14 @@ function ManageUsersForm() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={!!userToDelete} onOpenChange={() => setUserToDelete(null)}>
+      <Dialog 
+        open={!!userToDelete} 
+        onOpenChange={(open) => {
+          if (!open && !isDeleting) {
+            resetDialogStates();
+          }
+        }}
+      >
         <DialogContent className="bg-gray-900 border-gray-800 text-white">
           <DialogHeader>
             <DialogTitle className="text-white">Confirm User Deletion</DialogTitle>
@@ -472,7 +486,7 @@ function ManageUsersForm() {
           <DialogFooter>
             <Button 
               variant="outline" 
-              onClick={() => setUserToDelete(null)} 
+              onClick={() => resetDialogStates()} 
               disabled={isDeleting}
               className="border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white"
             >

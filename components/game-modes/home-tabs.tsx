@@ -54,6 +54,7 @@ function generateRoomCode(length: number = 6): string {
 
 export default function HomeTabs() {
   const [selectedDifficulty, setSelectedDifficulty] = useState<'easy' | 'medium' | 'hard'>('easy');
+  const [selectedQuestionCount, setSelectedQuestionCount] = useState<5 | 10 | 15 | 20>(5);
   const [isDifficultyDialogOpen, setIsDifficultyDialogOpen] = useState(false);
   const router = useRouter() // ✅ EKLENDİ: Yönlendirme için
   const [showHistory, setShowHistory] = useState(false)
@@ -449,11 +450,27 @@ export default function HomeTabs() {
           {level}
         </Button>
       ))}
+      
+      <div className="mt-4">
+        <DialogTitle className="text-sm mb-2">Question Count</DialogTitle>
+        <div className="grid grid-cols-2 gap-2">
+          {([5, 10, 15, 20] as const).map((count) => (
+            <Button
+              key={count}
+              variant={selectedQuestionCount === count ? "default" : "outline"}
+              onClick={() => setSelectedQuestionCount(count)}
+              className={`${selectedQuestionCount === count ? 'ring-2 ring-purple-400' : ''}`}
+            >
+              {count} Questions
+            </Button>
+          ))}
+        </div>
+      </div>
     </div>
     <DialogFooter className="mt-2">
       <Button
         onClick={() => {
-          router.push(`/singleplayer/play?difficulty=${selectedDifficulty}`);
+          router.push(`/singleplayer/play?difficulty=${selectedDifficulty}&numQuestions=${selectedQuestionCount}`);
         }}
         className="w-full"
       >
